@@ -18,6 +18,7 @@
     "lucide-react": "^1.37.0",
     "next": "16.3.3",
     "next-auth": "^5.0.0-beta.32",
+    "openskill": "^5.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "shadcn": "^4.19.0",
