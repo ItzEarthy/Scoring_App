@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Swords, Calendar, Clock } from "lucide-react";
 import { MatchStatus } from "@/app/generated/prisma/enums";
 import { ReportScoreForm } from "./report-score-form";
+import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
 
 const TERMINAL_STATUSES: MatchStatus[] = [
   MatchStatus.COMPLETED,
@@ -35,6 +36,8 @@ export default async function MatchPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
+
+  await autoApproveExpiredMatches({ matchId });
 
   const match = await prisma.match.findUnique({
     where: { id: matchId },

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +13,8 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect("/login");
 
   const userId = session.user.id;
+
+  await autoApproveExpiredMatches({ userId });
 
   const [ratings, participations] = await Promise.all([
     prisma.playerRating.findMany({

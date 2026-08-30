@@ -171,13 +171,15 @@ model PlayerRating {
 // ---------------------------------------------------------------------------
 
 model Match {
-  id               String      @id @default(cuid())
-  organizationId   String      @map("organization_id")
-  sportId          String      @map("sport_id")
-  status           MatchStatus @default(PENDING_CONFIRMATION)
-  approvalDeadline DateTime?   @map("approval_deadline")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  finishedAt       DateTime?   @map("finished_at")
+  id                 String      @id @default(cuid())
+  organizationId     String      @map("organization_id")
+  sportId            String      @map("sport_id")
+  status             MatchStatus @default(PENDING_CONFIRMATION)
+  approvalDeadline   DateTime?   @map("approval_deadline")
+  reportedWinnerTeam String?     @map("reported_winner_team")
+  reportedByUserId   String?     @map("reported_by_user_id")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  finishedAt         DateTime?   @map("finished_at")
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sport        Sport              @relation(fields: [sportId], references: [id], onDelete: Cascade)
