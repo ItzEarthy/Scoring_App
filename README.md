@@ -20,6 +20,29 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Running with Docker
+
+The whole stack (Postgres + the app, with migrations applied automatically) can be run with Docker Compose:
+
+```bash
+cp .env.example .env   # then edit AUTH_SECRET at minimum
+docker compose up --build
+```
+
+This starts three services:
+
+- `db` — Postgres 16, with data persisted in the `db_data` volume.
+- `migrate` — runs `prisma migrate deploy` against `db`, then exits.
+- `app` — the production Next.js server (`output: "standalone"`), waits for `migrate` to finish successfully before starting.
+
+The app is served at [http://localhost:3000](http://localhost:3000). To seed sample data into the containerized database:
+
+```bash
+docker compose run --rm migrate npx tsx prisma/seed.ts
+```
+
+To stop the stack: `docker compose down` (add `-v` to also delete the database volume).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

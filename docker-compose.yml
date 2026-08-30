@@ -3,18 +3,45 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: scoring_app
-      POSTGRES_PASSWORD: scoring_app
-      POSTGRES_DB: scoring_app
+      POSTGRES_USER: ${POSTGRES_USER:-scoring_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scoring_app}
+      POSTGRES_DB: ${POSTGRES_DB:-scoring_app}
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U scoring_app -d scoring_app"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scoring_app} -d ${POSTGRES_DB:-scoring_app}"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-scoring_app}:${POSTGRES_PASSWORD:-scoring_app}@db:5432/${POSTGRES_DB:-scoring_app}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-scoring_app}:${POSTGRES_PASSWORD:-scoring_app}@db:5432/${POSTGRES_DB:-scoring_app}?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set in .env}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   db_data:
