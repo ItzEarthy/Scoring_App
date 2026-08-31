@@ -63,7 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
  * constraint violation instead of just asking the user to sign back in, so
  * every write action that keys off session.user.id should call this first.
  * Returns null if there's no session, or if the session's user no longer
- * exists (in which case the stale cookie is cleared via signOut).
+ * exists (in which case the stale cookie is cleared via signOut when
+ * possible -- see below).
  */
 export async function getVerifiedUserId(): Promise<string | null> {
   const session = await auth();
@@ -75,7 +76,17 @@ export async function getVerifiedUserId(): Promise<string | null> {
   });
 
   if (!exists) {
-    await signOut({ redirectTo: "/login" });
+    try {
+      await signOut({ redirectTo: "/login" });
+    } catch {
+      // signOut() mutates the session cookie, which Next.js only allows
+      // from a Server Action or Route Handler. This function is also
+      // called from plain page/layout renders (e.g. getVerifiedSiteAdminUserId
+      // checking nav visibility), where that throws instead of clearing the
+      // cookie. Swallow it here -- returning null still makes the caller
+      // treat the session as unauthenticated, and a subsequent write
+      // action will retry the signOut from a context where it can succeed.
+    }
     return null;
   }
 
