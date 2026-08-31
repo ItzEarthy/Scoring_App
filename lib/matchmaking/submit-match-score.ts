@@ -1,8 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { rating as makeRating, rate } from "openskill";
 import { MatchOutcome, MatchStatus } from "@/app/generated/prisma/enums";
+import { getRatingEngine, type RatingEngine } from "@/lib/matchmaking/rating-engines";
 
 export type SubmitMatchScoreResult =
   | { success: true }
@@ -93,17 +93,18 @@ export async function submitMatchScore(
       }))
   );
 
-  // --- Rating calculation (openskill / Plackett-Luce) ---
-  const openskillTeams = teamGroups.map((team) =>
-    team.map((p) => makeRating({ mu: p.muBefore, sigma: p.sigmaBefore }))
+  // --- Rating calculation (engine selected by the sport's ratingAlgorithm) ---
+  const engine = getRatingEngine(match.sport.ratingAlgorithm);
+  const engineTeams = teamGroups.map((team) =>
+    team.map((p) => ({ mu: p.muBefore, sigma: p.sigmaBefore }))
   );
 
   // rank[i] = finishing position for teams[i]; 1 = winner.
   const ranks = orderedTeamIds.map((_, i) => i + 1);
 
-  let updatedRatings: ReturnType<typeof rate>;
+  let updatedRatings: ReturnType<RatingEngine["rate"]>;
   try {
-    updatedRatings = rate(openskillTeams, { rank: ranks });
+    updatedRatings = engine.rate(engineTeams, ranks);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, error: `Rating engine error: ${msg}` };
@@ -191,6 +192,7 @@ function fetchMatch(matchId: string) {
   return prisma.match.findUnique({
     where: { id: matchId },
     include: {
+      sport: { select: { ratingAlgorithm: true } },
       participants: {
         select: {
           id: true,

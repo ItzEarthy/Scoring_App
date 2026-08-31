@@ -36,6 +36,12 @@ enum MatchOutcome {
   DRAW
 }
 
+enum QueueStatus {
+  WAITING
+  MATCHED
+  CANCELED
+}
+
 // ---------------------------------------------------------------------------
 // Auth.js v5 models
 // ---------------------------------------------------------------------------
@@ -55,6 +61,7 @@ model User {
   organizationUsers OrganizationUser[]
   playerRatings     PlayerRating[]
   matchParticipants MatchParticipant[]
+  queueEntries      QueueEntry[]
 
   @@map("users")
 }
@@ -114,6 +121,7 @@ model Organization {
   organizationUsers OrganizationUser[]
   matches           Match[]
   playerRatings     PlayerRating[]
+  queueEntries      QueueEntry[]
 
   @@map("organizations")
 }
@@ -126,6 +134,7 @@ model Sport {
 
   playerRatings PlayerRating[]
   matches       Match[]
+  queueEntries  QueueEntry[]
 
   @@map("sports")
 }
@@ -184,6 +193,7 @@ model Match {
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sport        Sport              @relation(fields: [sportId], references: [id], onDelete: Cascade)
   participants MatchParticipant[]
+  queueEntries QueueEntry[]
 
   @@map("matches")
 }
@@ -207,4 +217,28 @@ model MatchParticipant {
 
   @@unique([matchId, userId])
   @@map("match_participants")
+}
+
+// ---------------------------------------------------------------------------
+// Matchmaking queue
+// ---------------------------------------------------------------------------
+
+model QueueEntry {
+  id             String      @id @default(cuid())
+  userId         String      @map("user_id")
+  organizationId String      @map("organization_id")
+  sportId        String      @map("sport_id")
+  status         QueueStatus @default(WAITING)
+  matchId        String?     @map("match_id")
+  joinedAt       DateTime    @default(now()) @map("joined_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sport        Sport        @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  match        Match?       @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  // Prevents a player from having two simultaneous WAITING entries for the
+  // same org+sport, while still allowing new entries after MATCHED/CANCELED.
+  @@unique([userId, organizationId, sportId, status])
+  @@map("queue_entries")
 }

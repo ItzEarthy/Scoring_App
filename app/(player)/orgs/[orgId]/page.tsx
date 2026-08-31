@@ -89,7 +89,12 @@ export default async function OrgPage({
           </p>
         </div>
 
-        {!isMember && (
+        {isMember ? (
+          <Button render={<Link href={`/orgs/${organization.id}/queue`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
+            <Swords className="h-4 w-4" />
+            Matchmaking Queue
+          </Button>
+        ) : (
           <form action={joinOrganizationAction}>
             <input type="hidden" name="organizationId" value={organization.id} />
             <Button type="submit" className="bg-brand-primary text-white hover:opacity-90">
