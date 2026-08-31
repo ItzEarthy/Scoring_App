@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submitMatchScore } from "@/lib/matchmaking/submit-match-score";
 import { MatchStatus, Role } from "@/app/generated/prisma/enums";
@@ -33,11 +33,10 @@ export async function reportMatchScoreAction(
   _prevState: ReportMatchScoreState,
   formData: FormData
 ): Promise<ReportMatchScoreState> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return { status: "error", message: "You must be signed in to report a score." };
   }
-  const userId = session.user.id;
 
   const matchId = formData.get("matchId");
   const orgId = formData.get("orgId");

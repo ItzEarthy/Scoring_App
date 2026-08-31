@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -11,7 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trophy, LayoutDashboard, Users, LogOut } from "lucide-react";
+import { Trophy, LayoutDashboard, Users } from "lucide-react";
+import { SignOutMenuItem } from "./sign-out-item";
 
 export default async function PlayerLayout({
   children,
@@ -76,23 +77,7 @@ export default async function PlayerLayout({
                 My Organizations
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                render={
-                  <form
-                    action={async () => {
-                      "use server";
-                      await signOut({ redirectTo: "/login" });
-                    }}
-                    className="w-full"
-                  />
-                }
-              >
-                <button type="submit" className="flex w-full items-center text-rose-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </button>
-              </DropdownMenuItem>
+              <SignOutMenuItem />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

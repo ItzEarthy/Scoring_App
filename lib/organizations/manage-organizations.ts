@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/app/generated/prisma/enums";
 
@@ -21,8 +21,8 @@ export async function createOrganizationAction(
   _prevState: CreateOrganizationState,
   formData: FormData
 ): Promise<CreateOrganizationState> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return { status: "error", message: "You must be signed in to create an organization." };
   }
 
@@ -36,7 +36,7 @@ export async function createOrganizationAction(
       name: name.trim(),
       platformConfig: DEFAULT_PLATFORM_CONFIG,
       organizationUsers: {
-        create: { userId: session.user.id, role: Role.OWNER },
+        create: { userId, role: Role.OWNER },
       },
     },
   });
@@ -46,8 +46,8 @@ export async function createOrganizationAction(
 }
 
 export async function joinOrganizationAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const userId = await getVerifiedUserId();
+  if (!userId) redirect("/login");
 
   const organizationId = formData.get("organizationId");
   if (typeof organizationId !== "string" || !organizationId.trim()) {
@@ -56,13 +56,13 @@ export async function joinOrganizationAction(formData: FormData) {
 
   const existing = await prisma.organizationUser.findUnique({
     where: {
-      userId_organizationId: { userId: session.user.id, organizationId },
+      userId_organizationId: { userId, organizationId },
     },
   });
 
   if (!existing) {
     await prisma.organizationUser.create({
-      data: { userId: session.user.id, organizationId, role: Role.MEMBER },
+      data: { userId, organizationId, role: Role.MEMBER },
     });
   }
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/app/generated/prisma/enums";
 
@@ -17,8 +17,8 @@ export async function updateOrgSettingsAction(
   _prevState: UpdateOrgSettingsState,
   formData: FormData
 ): Promise<UpdateOrgSettingsState> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return { status: "error", message: "You must be signed in." };
   }
 
@@ -28,7 +28,7 @@ export async function updateOrgSettingsAction(
   }
 
   const membership = await prisma.organizationUser.findUnique({
-    where: { userId_organizationId: { userId: session.user.id, organizationId } },
+    where: { userId_organizationId: { userId, organizationId } },
     select: { role: true },
   });
 

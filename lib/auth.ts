@@ -52,3 +52,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+/**
+ * Resolves the signed-in user's id, verifying the row still exists in the
+ * database. Sessions use the JWT strategy, so a session survives even after
+ * its underlying User row is gone (a dev DB reset, an admin removing the
+ * account) -- nothing re-validates it against the database automatically.
+ * Trusting a stale id straight from the session crashes any write that uses
+ * it as a foreign key (e.g. joining an org) with an unhandled Prisma
+ * constraint violation instead of just asking the user to sign back in, so
+ * every write action that keys off session.user.id should call this first.
+ * Returns null if there's no session, or if the session's user no longer
+ * exists (in which case the stale cookie is cleared via signOut).
+ */
+export async function getVerifiedUserId(): Promise<string | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const exists = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+
+  if (!exists) {
+    await signOut({ redirectTo: "/login" });
+    return null;
+  }
+
+  return session.user.id;
+}

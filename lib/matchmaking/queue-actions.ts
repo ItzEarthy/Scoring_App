@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QueueStatus } from "@/app/generated/prisma/enums";
 import { formMatchesFromQueue } from "./form-matches";
@@ -15,8 +15,8 @@ export async function joinQueueAction(
   _prevState: QueueActionState,
   formData: FormData
 ): Promise<QueueActionState> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getVerifiedUserId();
+  if (!userId) {
     return { status: "error", message: "You must be signed in to join the queue." };
   }
 
@@ -30,7 +30,7 @@ export async function joinQueueAction(
   }
 
   const membership = await prisma.organizationUser.findUnique({
-    where: { userId_organizationId: { userId: session.user.id, organizationId } },
+    where: { userId_organizationId: { userId, organizationId } },
   });
   if (!membership) {
     return { status: "error", message: "You must be a member of this organization to queue." };
@@ -38,7 +38,7 @@ export async function joinQueueAction(
 
   try {
     await prisma.queueEntry.create({
-      data: { userId: session.user.id, organizationId, sportId, status: QueueStatus.WAITING },
+      data: { userId, organizationId, sportId, status: QueueStatus.WAITING },
     });
   } catch {
     return { status: "error", message: "You're already in the queue for this sport." };
@@ -51,8 +51,8 @@ export async function joinQueueAction(
 }
 
 export async function leaveQueueAction(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) return;
+  const userId = await getVerifiedUserId();
+  if (!userId) return;
 
   const organizationId = formData.get("organizationId");
   const sportId = formData.get("sportId");
@@ -60,7 +60,7 @@ export async function leaveQueueAction(formData: FormData) {
 
   await prisma.queueEntry.updateMany({
     where: {
-      userId: session.user.id,
+      userId,
       organizationId,
       sportId,
       status: QueueStatus.WAITING,
