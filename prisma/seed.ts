@@ -11,60 +11,48 @@ async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
 
   // ---------------------------------------------------------------------
-  // Sports -- each rating algorithm gets more than one sport so the
-  // matchmaking queue and score-reporting flow exercise both engines.
+  // Sports catalog. Demo matches/ratings below only exercise a subset
+  // (Table Tennis, Foosball, Billiards); the rest exist as selectable
+  // sports without seeded activity.
   // ---------------------------------------------------------------------
-  const tableTennis = await prisma.sport.upsert({
-    where: { name: "Table Tennis" },
-    update: {},
-    create: {
-      name: "Table Tennis",
-      ratingAlgorithm: "openskill",
-      defaultRules: { bestOf: 5, pointsToWin: 11, winBy: 2 },
-    },
-  });
+  const sportCatalog = [
+    { name: "Tennis", ratingAlgorithm: "glicko2", defaultRules: { setsToWin: 2, gamesPerSet: 6, tiebreakerAt: 6 } },
+    { name: "Table Tennis", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 11, bestOf: 5, winBy: 2 } },
+    { name: "Pickleball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 11, winBy: 2, serveScoringOnly: true } },
+    { name: "Badminton", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, bestOf: 3, capAt: 30 } },
+    { name: "Squash", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 11, bestOf: 5, scoringSystem: "PARS" } },
+    { name: "Racquetball", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 15, tiebreakerPoints: 11 } },
+    { name: "Billiards", ratingAlgorithm: "glicko2", defaultRules: { format: "8-Ball", racesTo: 5, callPocket: true } },
+    { name: "Snooker", ratingAlgorithm: "glicko2", defaultRules: { framesToWin: 3, reds: 15 } },
+    { name: "Darts", ratingAlgorithm: "glicko2", defaultRules: { format: "501", finish: "double", legsToWin: 3 } },
+    { name: "Foosball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 5, noSpinning: true } },
+    { name: "Air Hockey", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 7, timeLimitMinutes: 10 } },
+    { name: "Shuffleboard", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 15, frameLimit: 10 } },
+    { name: "Golf", ratingAlgorithm: "glicko2", defaultRules: { format: "Stroke Play", holes: 18 } },
+    { name: "Bowling", ratingAlgorithm: "glicko2", defaultRules: { frames: 10, scoringMethod: "traditional" } },
+    { name: "Cornhole", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, cancellationScoring: true } },
+    { name: "Spikeball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, winBy: 2, rallyScoring: true } },
+    { name: "Volleyball", ratingAlgorithm: "openskill", defaultRules: { setsToWin: 3, pointsPerSet: 25, tiebreakerPoints: 15 } },
+    { name: "Basketball", ratingAlgorithm: "openskill", defaultRules: { format: "5v5", quarters: 4, quarterLengthMinutes: 10 } },
+    { name: "Soccer", ratingAlgorithm: "openskill", defaultRules: { format: "11v11", halves: 2, halfLengthMinutes: 45 } },
+    { name: "Softball", ratingAlgorithm: "openskill", defaultRules: { format: "Slow Pitch", innings: 7 } },
+  ] as const;
 
-  const foosball = await prisma.sport.upsert({
-    where: { name: "Foosball" },
-    update: {},
-    create: {
-      name: "Foosball",
-      ratingAlgorithm: "openskill",
-      defaultRules: { pointsToWin: 10, winBy: 2, doublesAllowed: true },
-    },
-  });
+  const sportByName = new Map<string, Awaited<ReturnType<typeof prisma.sport.upsert>>>();
+  for (const s of sportCatalog) {
+    const sport = await prisma.sport.upsert({
+      where: { name: s.name },
+      update: {},
+      create: { name: s.name, ratingAlgorithm: s.ratingAlgorithm, defaultRules: s.defaultRules },
+    });
+    sportByName.set(s.name, sport);
+  }
 
-  const oneOnOneBasketball = await prisma.sport.upsert({
-    where: { name: "1-on-1 Basketball" },
-    update: {},
-    create: {
-      name: "1-on-1 Basketball",
-      ratingAlgorithm: "openskill",
-      defaultRules: { pointsToWin: 21, winBy: 2, shotClockSeconds: 24 },
-    },
-  });
+  const tableTennis = sportByName.get("Table Tennis")!;
+  const foosball = sportByName.get("Foosball")!;
+  const billiards = sportByName.get("Billiards")!;
 
-  const chess = await prisma.sport.upsert({
-    where: { name: "Chess" },
-    update: {},
-    create: {
-      name: "Chess",
-      ratingAlgorithm: "glicko2",
-      defaultRules: { timeControl: "10+5", ratingPeriodDays: 7 },
-    },
-  });
-
-  const billiards = await prisma.sport.upsert({
-    where: { name: "Billiards" },
-    update: {},
-    create: {
-      name: "Billiards",
-      ratingAlgorithm: "glicko2",
-      defaultRules: { gameType: "8-ball", raceTo: 5, ratingPeriodDays: 7 },
-    },
-  });
-
-  const sports = { tableTennis, foosball, oneOnOneBasketball, chess, billiards };
+  const sports = Object.fromEntries(sportByName);
 
   // ---------------------------------------------------------------------
   // Organizations
@@ -140,25 +128,15 @@ async function main() {
     mu: number;
     sigma: number;
   }[] = [
-    // OpenSkill: Table Tennis
-    { userId: alice.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 27.4, sigma: 6.1 },
-    { userId: ben.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 24.8, sigma: 6.9 },
-    { userId: chloe.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 22.1, sigma: 7.5 },
-    { userId: emma.id, organizationId: orgB.id, sportId: tableTennis.id, mu: 28.1, sigma: 5.2 },
+    // Glicko-2: Table Tennis
+    { userId: alice.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1574, sigma: 155 },
+    { userId: ben.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1498, sigma: 172 },
+    { userId: chloe.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1421, sigma: 188 },
+    { userId: emma.id, organizationId: orgB.id, sportId: tableTennis.id, mu: 1591, sigma: 140 },
 
     // OpenSkill: Foosball
     { userId: alice.id, organizationId: orgA.id, sportId: foosball.id, mu: 25.9, sigma: 7.2 },
     { userId: chloe.id, organizationId: orgA.id, sportId: foosball.id, mu: 23.6, sigma: 7.8 },
-
-    // OpenSkill: 1-on-1 Basketball
-    { userId: ben.id, organizationId: orgB.id, sportId: oneOnOneBasketball.id, mu: 26.3, sigma: 6.5 },
-    { userId: derek.id, organizationId: orgB.id, sportId: oneOnOneBasketball.id, mu: 24.0, sigma: 7.1 },
-
-    // Glicko-2: Chess (rating/RD scale, not OpenSkill's mu/sigma scale)
-    { userId: derek.id, organizationId: orgA.id, sportId: chess.id, mu: 1612, sigma: 145 },
-    { userId: emma.id, organizationId: orgA.id, sportId: chess.id, mu: 1487, sigma: 190 },
-    { userId: ben.id, organizationId: orgB.id, sportId: chess.id, mu: 1598, sigma: 168 },
-    { userId: derek.id, organizationId: orgB.id, sportId: chess.id, mu: 1523, sigma: 176 },
 
     // Glicko-2: Billiards
     { userId: alice.id, organizationId: orgA.id, sportId: billiards.id, mu: 1550, sigma: 210 },
@@ -207,8 +185,8 @@ async function main() {
       status: MatchStatus.COMPLETED,
       daysAgo: 30,
       participants: [
-        { user: alice, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 0.6 },
-        { user: ben, team: "team_b", score: 7, outcome: MatchOutcome.LOSS, ratingDelta: -0.5 },
+        { user: alice, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 21 },
+        { user: ben, team: "team_b", score: 7, outcome: MatchOutcome.LOSS, ratingDelta: -19 },
       ],
     },
     {
@@ -217,8 +195,8 @@ async function main() {
       status: MatchStatus.COMPLETED,
       daysAgo: 27,
       participants: [
-        { user: ben, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 0.7 },
-        { user: chloe, team: "team_b", score: 9, outcome: MatchOutcome.LOSS, ratingDelta: -0.6 },
+        { user: ben, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 23 },
+        { user: chloe, team: "team_b", score: 9, outcome: MatchOutcome.LOSS, ratingDelta: -20 },
       ],
     },
     {
@@ -227,8 +205,8 @@ async function main() {
       status: MatchStatus.COMPLETED,
       daysAgo: 22,
       participants: [
-        { user: alice, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 0.5 },
-        { user: chloe, team: "team_b", score: 4, outcome: MatchOutcome.LOSS, ratingDelta: -0.7 },
+        { user: alice, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 18 },
+        { user: chloe, team: "team_b", score: 4, outcome: MatchOutcome.LOSS, ratingDelta: -24 },
       ],
     },
     {
@@ -243,26 +221,6 @@ async function main() {
     },
     {
       organizationId: orgA.id,
-      sportId: chess.id,
-      status: MatchStatus.COMPLETED,
-      daysAgo: 20,
-      participants: [
-        { user: derek, team: "team_a", score: 1, outcome: MatchOutcome.WIN, ratingDelta: 22 },
-        { user: emma, team: "team_b", score: 0, outcome: MatchOutcome.LOSS, ratingDelta: -18 },
-      ],
-    },
-    {
-      organizationId: orgA.id,
-      sportId: chess.id,
-      status: MatchStatus.DISPUTED,
-      daysAgo: 15,
-      participants: [
-        { user: emma, team: "team_a", score: 0, outcome: MatchOutcome.DRAW, ratingDelta: 0 },
-        { user: derek, team: "team_b", score: 0, outcome: MatchOutcome.DRAW, ratingDelta: 0 },
-      ],
-    },
-    {
-      organizationId: orgA.id,
       sportId: billiards.id,
       status: MatchStatus.COMPLETED,
       daysAgo: 12,
@@ -273,42 +231,12 @@ async function main() {
     },
     {
       organizationId: orgB.id,
-      sportId: chess.id,
-      status: MatchStatus.COMPLETED,
-      daysAgo: 18,
-      participants: [
-        { user: ben, team: "team_a", score: 1, outcome: MatchOutcome.WIN, ratingDelta: 20 },
-        { user: derek, team: "team_b", score: 0, outcome: MatchOutcome.LOSS, ratingDelta: -19 },
-      ],
-    },
-    {
-      organizationId: orgB.id,
-      sportId: chess.id,
-      status: MatchStatus.COMPLETED,
-      daysAgo: 10,
-      participants: [
-        { user: derek, team: "team_a", score: 1, outcome: MatchOutcome.WIN, ratingDelta: 24 },
-        { user: ben, team: "team_b", score: 0, outcome: MatchOutcome.LOSS, ratingDelta: -23 },
-      ],
-    },
-    {
-      organizationId: orgB.id,
-      sportId: oneOnOneBasketball.id,
-      status: MatchStatus.COMPLETED,
-      daysAgo: 9,
-      participants: [
-        { user: ben, team: "team_a", score: 21, outcome: MatchOutcome.WIN, ratingDelta: 0.5 },
-        { user: derek, team: "team_b", score: 17, outcome: MatchOutcome.LOSS, ratingDelta: -0.5 },
-      ],
-    },
-    {
-      organizationId: orgB.id,
       sportId: tableTennis.id,
       status: MatchStatus.COMPLETED,
       daysAgo: 8,
       participants: [
-        { user: emma, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 0.3 },
-        { user: ben, team: "team_b", score: 6, outcome: MatchOutcome.LOSS, ratingDelta: -0.3 },
+        { user: emma, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 12 },
+        { user: ben, team: "team_b", score: 6, outcome: MatchOutcome.LOSS, ratingDelta: -13 },
       ],
     },
     {
@@ -319,16 +247,6 @@ async function main() {
       participants: [
         { user: alice, team: "team_a", score: 11, outcome: MatchOutcome.WIN, ratingDelta: 0 },
         { user: ben, team: "team_b", score: 8, outcome: MatchOutcome.LOSS, ratingDelta: 0 },
-      ],
-    },
-    {
-      organizationId: orgB.id,
-      sportId: chess.id,
-      status: MatchStatus.SCHEDULED,
-      daysAgo: 0,
-      participants: [
-        { user: ben, team: "team_a", score: 0, outcome: null as unknown as MatchOutcome, ratingDelta: 0 },
-        { user: derek, team: "team_b", score: 0, outcome: null as unknown as MatchOutcome, ratingDelta: 0 },
       ],
     },
   ];
