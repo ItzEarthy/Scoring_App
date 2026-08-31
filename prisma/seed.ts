@@ -97,7 +97,7 @@ async function main() {
   const userData = [
     { name: "Alice Nguyen", email: "alice@example.com" },
     { name: "Ben Carter", email: "ben@example.com" },
-    { name: "Chloe Ramirez", email: "chloe@example.com" },
+    { name: "Chloe Ramirez", email: "chloe@example.com", isSiteAdmin: true },
     { name: "Derek Kim", email: "derek@example.com" },
     { name: "Emma Walsh", email: "emma@example.com" },
   ];

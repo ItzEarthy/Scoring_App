@@ -22,6 +22,7 @@ Define these explicitly in the Prisma schema:
 *   `emailVerified` (DateTime?)
 *   `passwordHash` (String) *(Required for MVP)*
 *   `avatarBase64` (Text/String?) *(Constraint: Must be handled via client-side compression before DB insert)*
+*   `isSiteAdmin` (Boolean, default: false) *(Platform-level role, separate from any org-scoped `Role` — grants access to `/admin`. Always re-queried from the DB, never trusted from the JWT session.)*
 *   *Relations:* `accounts`, `sessions`, `organizationUsers`, `playerRatings`, `matchParticipants`
 
 **Organization**
@@ -35,9 +36,11 @@ Define these explicitly in the Prisma schema:
 **Sport**
 *   `id` (String, CUID, PK)
 *   `name` (String, Unique)
-*   `ratingAlgorithm` (String) *(e.g., 'glicko2', 'trueskill', 'elo')*
+*   `ratingAlgorithm` (String) *(Only `'openskill'` and `'glicko2'` are actually implemented; anything else silently falls back to OpenSkill -- see `lib/matchmaking/rating-engines`)*
 *   `defaultRules` (JsonB)
-*   *Relations:* `playerRatings`, `matches`
+*   `isActive` (Boolean, default: true) *(Site-admin "deactivate" toggles this rather than deleting the row -- `Sport` cascade-deletes to `PlayerRating`/`Match`/`QueueEntry`, so a hard delete would wipe historical data platform-wide)*
+*   `createdAt`, `updatedAt` (DateTime)
+*   *Relations:* `playerRatings`, `matches`, `queueEntries`
 
 ## 4. Junctions & Intersections
 

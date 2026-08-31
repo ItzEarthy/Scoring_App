@@ -81,3 +81,29 @@ export async function getVerifiedUserId(): Promise<string | null> {
 
   return session.user.id;
 }
+
+/**
+ * Resolves the signed-in user's id if -- and only if -- they hold the
+ * platform-level Site Admin flag, re-querying User.isSiteAdmin from the
+ * database on every call rather than trusting the JWT session. isSiteAdmin
+ * is deliberately NOT embedded in the session token: for a security-
+ * sensitive flag like this, JWT staleness (see getVerifiedUserId above)
+ * would mean a revoked site admin keeps nav access and mutation rights
+ * until their token expires instead of losing them on their next request.
+ * Call this in the admin area's layout gate, in each /admin page (matching
+ * how player pages re-check auth() even though the layout already
+ * redirects), and inside every site-admin server action.
+ * Returns null if there's no session, the session's user no longer exists,
+ * or the user exists but isSiteAdmin is false.
+ */
+export async function getVerifiedSiteAdminUserId(): Promise<string | null> {
+  const userId = await getVerifiedUserId();
+  if (!userId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isSiteAdmin: true },
+  });
+
+  return user?.isSiteAdmin ? userId : null;
+}

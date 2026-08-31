@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Trophy, Settings, Swords } from "lucide-react";
 import { Role } from "@/app/generated/prisma/enums";
 import { OrgSettingsForm } from "./org-settings-form";
+import { MemberRowControls } from "./member-row-controls";
 import { joinOrganizationAction } from "@/lib/organizations/manage-organizations";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
 import { Button } from "@/components/ui/button";
@@ -196,7 +197,16 @@ export default async function OrgPage({
                 <AvatarFallback>{(m.user.name ?? m.user.email).slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <span className="flex-1 font-medium text-gray-900">{m.user.name ?? m.user.email}</span>
-              <Badge className="bg-brand-secondary text-gray-900 hover:bg-brand-secondary">{m.role}</Badge>
+              {isAdmin && m.role !== Role.OWNER && m.userId !== userId ? (
+                <MemberRowControls
+                  organizationId={organization.id}
+                  targetUserId={m.userId}
+                  targetName={m.user.name ?? m.user.email}
+                  currentRole={m.role === Role.ADMIN ? "ADMIN" : "MEMBER"}
+                />
+              ) : (
+                <Badge className="bg-brand-secondary text-gray-900 hover:bg-brand-secondary">{m.role}</Badge>
+              )}
             </div>
           ))}
         </div>

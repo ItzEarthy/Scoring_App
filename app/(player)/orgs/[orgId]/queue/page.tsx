@@ -28,7 +28,7 @@ export default async function QueuePage({
   });
   if (!organization) notFound();
 
-  const sports = await prisma.sport.findMany({ orderBy: { name: "asc" } });
+  const sports = await prisma.sport.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
 
   const waitingEntries = await prisma.queueEntry.findMany({
     where: { organizationId: orgId, status: QueueStatus.WAITING },

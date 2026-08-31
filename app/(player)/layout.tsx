@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, getVerifiedSiteAdminUserId } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trophy, LayoutDashboard, Users } from "lucide-react";
+import { Trophy, LayoutDashboard, Users, ShieldCheck } from "lucide-react";
 import { SignOutMenuItem } from "./sign-out-item";
 
 export default async function PlayerLayout({
@@ -26,6 +27,7 @@ export default async function PlayerLayout({
   }
 
   const user = session.user;
+  const siteAdminUserId = await getVerifiedSiteAdminUserId();
   const initials = (user.name ?? user.email ?? "?")
     .trim()
     .split(" ")
@@ -54,6 +56,12 @@ export default async function PlayerLayout({
               <Users className="h-4 w-4" />
               Organizations
             </Button>
+            {siteAdminUserId && (
+              <Button render={<Link href="/admin" />} variant="ghost" className="gap-2 text-gray-900 hover:bg-brand-secondary/20">
+                <ShieldCheck className="h-4 w-4" />
+                Site Admin
+              </Button>
+            )}
           </nav>
 
           {/* Account menu */}
@@ -67,15 +75,23 @@ export default async function PlayerLayout({
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="flex flex-col">
-                <span className="font-medium">{user.name ?? "Player"}</span>
-                <span className="text-xs font-normal text-gray-500">{user.email}</span>
-              </DropdownMenuLabel>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="flex flex-col">
+                  <span className="font-medium">{user.name ?? "Player"}</span>
+                  <span className="text-xs font-normal text-gray-500">{user.email}</span>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<Link href="/orgs" />}>
                 <Users className="mr-2 h-4 w-4" />
                 My Organizations
               </DropdownMenuItem>
+              {siteAdminUserId && (
+                <DropdownMenuItem render={<Link href="/admin" />}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Site Admin
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <SignOutMenuItem />
             </DropdownMenuContent>

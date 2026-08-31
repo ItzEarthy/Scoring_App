@@ -69,9 +69,12 @@ Key files:
 - `lib/organizations/manage-organizations.ts` — create org, join org (currently open/no-gate).
 - `lib/organizations/update-org-settings.ts` — validates and writes `platformConfig`.
 - `app/(player)/...` — authenticated app shell: `dashboard`, `orgs`, `orgs/[orgId]`,
-  `orgs/[orgId]/queue`, `matches/[matchId]`.
+  `orgs/[orgId]/queue`, `matches/[matchId]`, `admin` (site-admin area, nested here rather than a
+  separate route group so it reuses the shell's header/nav — see `admin/layout.tsx` for the
+  `isSiteAdmin` gate).
 - `app/(auth)/...` — `/login`, `/register`.
-- No `app/admin` or site-admin area exists yet.
+- `lib/sports/manage-sports.ts` — site-admin-only sport catalog CRUD (create/edit/deactivate).
+- `lib/organizations/manage-roster.ts` — org-admin-only member role/removal actions.
 - No tests exist anywhere in the repo yet.
 
 ## 4. Design decisions log
@@ -172,17 +175,18 @@ Decisions made in product-discovery conversation on 2026-08-31 that aren't obvio
 | Feature | Status | Notes |
 |---|---|---|
 | Org role enum (MEMBER/ADMIN/OWNER) + gating on writes | `DONE` | Used in settings/score-forcing checks today. |
-| Role management UI | `PLANNED` | See decision #6. |
-| Site Admin role | `PLANNED` | New concept, not in schema yet — see decision #5 and §5.5. |
+| Role management UI | `DONE` | `app/(player)/orgs/[orgId]/member-row-controls.tsx` + `lib/organizations/manage-roster.ts`. Org ADMIN/OWNER can promote/demote MEMBER<->ADMIN and remove a member; the OWNER row and the acting admin's own row render no controls, and the server action independently rejects both (retargeting the OWNER, or self-removal) even if a request bypassed the UI. |
+| Site Admin role | `DONE` | `User.isSiteAdmin` boolean — see decision #5 and §5.5. |
 
 ### 5.5 Site administration (new, platform-level)
 
 | Feature | Status | Notes |
 |---|---|---|
-| Site Admin role/flag on User | `PLANNED` | Needs a schema decision: boolean flag on `User` vs. a separate `SiteRole` enum/table. |
-| Global user moderation (view/suspend/ban) | `PLANNED` | |
-| Global org oversight (view/suspend/delete any org) | `PLANNED` | |
-| Global sports catalog management | `PLANNED` | See §5.3. |
+| Site Admin role/flag on User | `DONE` | Resolved as a boolean (`User.isSiteAdmin`), not a separate enum/table — only one platform-admin tier exists. Re-verified from the DB on every check via `getVerifiedSiteAdminUserId()` in `lib/auth.ts` (never cached in the JWT, to avoid the same staleness problem `getVerifiedUserId()` guards against). Chloe Ramirez (`chloe@example.com`) is flagged in `prisma/seed.ts` for local testing — chosen because she holds no org-admin role anywhere, proving Site Admin is a separate axis from org role. |
+| Minimal site-admin area | `DONE` | Nested at `app/(player)/admin/` (reuses the player shell's header/nav rather than a separate chrome) — gated by `app/(player)/admin/layout.tsx`. |
+| Global sports catalog management | `DONE` | `lib/sports/manage-sports.ts` + `app/(player)/admin/sports/`. Create/edit a sport (name, rating algorithm, default rules JSON); "deactivate" toggles `Sport.isActive` rather than deleting, since `Sport` cascade-deletes to `PlayerRating`/`Match`/`QueueEntry`. The matchmaking queue page (`orgs/[orgId]/queue/page.tsx`) filters to `isActive: true` sports only. |
+| Global user moderation (view/suspend/ban) | `PLANNED` | Not built this slice. |
+| Global org oversight (view/suspend/delete any org) | `PLANNED` | Not built this slice. |
 | Platform settings / analytics | `OPEN QUESTION` | Mentioned as in-scope ("controls the service") but not broken into concrete stories yet. |
 
 ### 5.6 Auth & platform plumbing
@@ -216,9 +220,19 @@ Decisions made in product-discovery conversation on 2026-08-31 that aren't obvio
 
 Per owner decision on 2026-08-31: **start foundational**, in this order:
 
-1. Site Admin role (schema + gating) and a minimal site-admin area.
-2. Global sports catalog management UI (site-admin-owned).
-3. Org roster/ACL management UI (promote/demote/remove, org-admin-owned).
+1. ~~Site Admin role (schema + gating) and a minimal site-admin area.~~ `DONE` 2026-08-31.
+2. ~~Global sports catalog management UI (site-admin-owned).~~ `DONE` 2026-08-31.
+3. ~~Org roster/ACL management UI (promote/demote/remove, org-admin-owned).~~ `DONE` 2026-08-31.
 
-Core-gameplay work (pool mode, admin-led match creation, skill-gap widening window) and
-trust/safety work (dispute resolution, org privacy tiers) come after this foundational slice.
+The foundational slice is complete (see §5.4/§5.5) and was verified end-to-end in the browser:
+site-admin nav gating, sports catalog create/edit/deactivate-reactivate (including the required
+`orgs/[orgId]/queue` filter fix and the duplicate-name error path), and org roster promote/
+demote/remove (including the hard-delete + soft-deactivate transaction and the OWNER/self-removal
+guardrails). One pre-existing bug was found and fixed along the way: the account dropdown's
+`DropdownMenuLabel` crashed on open because it wasn't wrapped in the `DropdownMenuGroup` its
+underlying base-ui primitive requires — unrelated to this slice's scope but blocking every user's
+account menu, so it was fixed in `app/(player)/layout.tsx`.
+
+Next up, per the original roadmap: core-gameplay work (pool mode, admin-led match creation,
+skill-gap widening window) and trust/safety work (dispute resolution, org privacy tiers). Neither
+has been started.
