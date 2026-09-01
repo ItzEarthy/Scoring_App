@@ -18,7 +18,8 @@ const TERMINAL_STATUSES: MatchStatus[] = [
 export async function submitMatchScore(
   matchId: string,
   winningTeamIdentifier: string,
-  orgId: string
+  orgId: string,
+  options?: { allowFromDisputed?: boolean }
 ): Promise<SubmitMatchScoreResult> {
   // --- Input validation ---
   if (!matchId?.trim() || !winningTeamIdentifier?.trim() || !orgId?.trim()) {
@@ -48,7 +49,8 @@ export async function submitMatchScore(
     return { success: false, error: "Match does not belong to the specified organization." };
   }
 
-  if (TERMINAL_STATUSES.includes(match.status)) {
+  const disputeOverride = options?.allowFromDisputed && match.status === MatchStatus.DISPUTED;
+  if (TERMINAL_STATUSES.includes(match.status) && !disputeOverride) {
     return {
       success: false,
       error: `Match is already ${match.status.replace(/_/g, " ").toLowerCase()} and cannot be scored.`,

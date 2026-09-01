@@ -4,12 +4,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Role } from "@/app/generated/prisma/enums";
-import { Trophy, Sliders, LayoutGrid, Settings } from "lucide-react";
+import { MatchStatus, Role } from "@/app/generated/prisma/enums";
+import { Trophy, Sliders, LayoutGrid, Settings, ShieldAlert } from "lucide-react";
 import { SportsSettingsForm } from "./sports-settings-form";
 import { MatchmakingSettingsForm } from "./matchmaking-settings-form";
 import { CourtsSettingsForm } from "./courts-settings-form";
 import { CreateCourtForm } from "./create-court-form";
+import { DisputeResolutionCard } from "./dispute-resolution-card";
 
 type PlatformConfig = {
   match_mode?: string;
@@ -43,7 +44,7 @@ export default async function OrgSettingsPage({
   });
   if (!organization) notFound();
 
-  const [allSports, orgSports, courts] = await Promise.all([
+  const [allSports, orgSports, courts, disputedMatches] = await Promise.all([
     prisma.sport.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -57,6 +58,16 @@ export default async function OrgSettingsPage({
       where: { organizationId: orgId },
       orderBy: { displayOrder: "asc" },
       select: { id: true, name: true, status: true, sportId: true },
+    }),
+    prisma.match.findMany({
+      where: { organizationId: orgId, status: MatchStatus.DISPUTED },
+      orderBy: { createdAt: "desc" },
+      include: {
+        sport: { select: { name: true } },
+        participants: {
+          include: { user: { select: { name: true, email: true, avatarBase64: true } } },
+        },
+      },
     }),
   ]);
 
@@ -81,6 +92,52 @@ export default async function OrgSettingsPage({
           Customize the sports, matchmaking behavior, and courts for {organization.name}.
         </p>
       </div>
+
+      {disputedMatches.length > 0 && (
+        <>
+          <section>
+            <div className="mb-4 flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-rose-500" />
+              <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">
+                Disputed Matches
+              </h2>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Participants reported conflicting winners for these matches. Pick the actual winner to
+              finalize ratings, or void the match if it shouldn&apos;t count at all.
+            </p>
+            <div className="flex flex-col gap-4">
+              {disputedMatches.map((match) => {
+                const teamOrder = [...new Set(match.participants.map((p) => p.teamIdentifier))];
+                const teams = teamOrder.map((teamIdentifier, i) => ({
+                  teamIdentifier,
+                  label: `Team ${String.fromCharCode(65 + i)}`,
+                  players: match.participants
+                    .filter((p) => p.teamIdentifier === teamIdentifier)
+                    .map((p) => ({
+                      participantId: p.id,
+                      name: p.user.name ?? p.user.email,
+                      avatarBase64: p.user.avatarBase64,
+                      score: p.score,
+                    })),
+                }));
+                return (
+                  <DisputeResolutionCard
+                    key={match.id}
+                    matchId={match.id}
+                    orgId={organization.id}
+                    sportName={match.sport.name}
+                    createdAt={match.createdAt}
+                    teams={teams}
+                  />
+                );
+              })}
+            </div>
+          </section>
+
+          <Separator />
+        </>
+      )}
 
       <section>
         <div className="mb-4 flex items-center gap-2">
