@@ -39,7 +39,7 @@ export default async function DashboardPage() {
         },
       },
       orderBy: { match: { createdAt: "desc" } },
-      take: 10,
+      take: 5,
     }),
   ]);
 

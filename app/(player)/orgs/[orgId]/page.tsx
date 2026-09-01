@@ -88,6 +88,7 @@ export default async function OrgPage({
           user: { select: { id: true, name: true, email: true } },
           sport: { select: { id: true, name: true } },
         },
+        orderBy: { mu: "desc" },
       },
       matches: {
         orderBy: { createdAt: "desc" },
@@ -105,6 +106,8 @@ export default async function OrgPage({
 
   const config = (organization.platformConfig ?? {}) as PlatformConfig;
 
+  // organization.playerRatings is already ordered by mu desc from the query,
+  // so grouping by sport preserves that order within each group.
   const sportGroups = new Map<string, { sportName: string; rows: typeof organization.playerRatings }>();
   for (const rating of organization.playerRatings) {
     const key = rating.sport.id;
@@ -112,9 +115,6 @@ export default async function OrgPage({
       sportGroups.set(key, { sportName: rating.sport.name, rows: [] });
     }
     sportGroups.get(key)!.rows.push(rating);
-  }
-  for (const group of sportGroups.values()) {
-    group.rows.sort((a, b) => b.mu - 3 * b.sigma - (a.mu - 3 * a.sigma));
   }
 
   return (
@@ -163,19 +163,19 @@ export default async function OrgPage({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">#</TableHead>
                         <TableHead>Player</TableHead>
                         <TableHead className="text-right">Rating</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.rows.map((r) => (
+                      {group.rows.map((r, i) => (
                         <TableRow key={r.id}>
+                          <TableCell className="text-gray-900/50">{i + 1}</TableCell>
                           <TableCell className="font-medium text-gray-900">
                             {r.user.name ?? r.user.email}
                           </TableCell>
-                          <TableCell className="text-right">
-                            {Math.round(r.mu - 3 * r.sigma)}
-                          </TableCell>
+                          <TableCell className="text-right">{Math.round(r.mu)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
