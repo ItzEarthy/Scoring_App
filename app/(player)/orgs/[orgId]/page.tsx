@@ -21,6 +21,47 @@ type PlatformConfig = {
   auto_approve_hours?: number;
 };
 
+function MatchModeEntryPoint({
+  organizationId,
+  matchMode,
+  isAdmin,
+}: {
+  organizationId: string;
+  matchMode: string;
+  isAdmin: boolean;
+}) {
+  if (matchMode === "admin") {
+    if (isAdmin) {
+      return (
+        <Button render={<Link href={`/orgs/${organizationId}/new-match`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
+          <Swords className="h-4 w-4" />
+          Schedule Match
+        </Button>
+      );
+    }
+    return (
+      <p className="max-w-xs text-right text-sm text-gray-900/70">
+        Matches here are scheduled directly by an organization admin.
+      </p>
+    );
+  }
+
+  if (matchMode === "pool" || matchMode === "free") {
+    return (
+      <Badge variant="outline" className="text-gray-500">
+        {matchMode === "pool" ? "Pool" : "Free-for-all"} matchmaking is not available yet
+      </Badge>
+    );
+  }
+
+  return (
+    <Button render={<Link href={`/orgs/${organizationId}/queue`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
+      <Swords className="h-4 w-4" />
+      Matchmaking Queue
+    </Button>
+  );
+}
+
 export default async function OrgPage({
   params,
 }: {
@@ -91,10 +132,7 @@ export default async function OrgPage({
         </div>
 
         {isMember ? (
-          <Button render={<Link href={`/orgs/${organization.id}/queue`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
-            <Swords className="h-4 w-4" />
-            Matchmaking Queue
-          </Button>
+          <MatchModeEntryPoint organizationId={organization.id} matchMode={config.match_mode ?? "queue"} isAdmin={isAdmin} />
         ) : (
           <form action={joinOrganizationAction}>
             <input type="hidden" name="organizationId" value={organization.id} />

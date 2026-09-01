@@ -24,9 +24,12 @@ export default async function QueuePage({
 
   const organization = await prisma.organization.findUnique({
     where: { id: orgId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, platformConfig: true },
   });
   if (!organization) notFound();
+
+  const matchMode = (organization.platformConfig as { match_mode?: string } | null)?.match_mode ?? "queue";
+  if (matchMode !== "queue") redirect(`/orgs/${orgId}`);
 
   const sports = await prisma.sport.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
 
