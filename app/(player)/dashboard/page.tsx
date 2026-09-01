@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
+import { conservativeRating } from "@/lib/matchmaking/rating-engines/conservative-rating";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
     prisma.playerRating.findMany({
       where: { userId, isActive: true },
       include: {
-        sport: { select: { name: true } },
+        sport: { select: { name: true, ratingAlgorithm: true } },
       },
       orderBy: { sport: { name: "asc" } },
     }),
@@ -98,7 +99,11 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {ratings.map((rating) => {
-              const conservative = Math.round(rating.mu - 3 * rating.sigma);
+              const conservative = conservativeRating(
+                rating.sport.ratingAlgorithm === "glicko2" ? "glicko2" : "openskill",
+                rating.mu,
+                rating.sigma
+              );
               return (
                 <Card key={rating.id} className="bg-brand-surface">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -8,6 +8,8 @@ export type SubmitMatchScoreResult =
   | { success: true }
   | { success: false; error: string };
 
+export type MatchOutcomeInput = { winnerTeamIdentifier: string } | { draw: true };
+
 // Statuses that cannot be overwritten by a score submission.
 const TERMINAL_STATUSES: MatchStatus[] = [
   MatchStatus.COMPLETED,
@@ -17,15 +19,18 @@ const TERMINAL_STATUSES: MatchStatus[] = [
 
 export async function submitMatchScore(
   matchId: string,
-  winningTeamIdentifier: string,
   orgId: string,
-  options?: { allowFromDisputed?: boolean }
+  outcome: MatchOutcomeInput,
+  options?: { allowFromDisputed?: boolean; teamScores?: Record<string, number> }
 ): Promise<SubmitMatchScoreResult> {
+  const isDraw = "draw" in outcome && outcome.draw;
+  const winningTeamIdentifier = "winnerTeamIdentifier" in outcome ? outcome.winnerTeamIdentifier : null;
+
   // --- Input validation ---
-  if (!matchId?.trim() || !winningTeamIdentifier?.trim() || !orgId?.trim()) {
+  if (!matchId?.trim() || !orgId?.trim() || (!isDraw && !winningTeamIdentifier?.trim())) {
     return {
       success: false,
-      error: "matchId, winningTeamIdentifier, and orgId are required.",
+      error: "matchId, orgId, and a winner (or draw) are required.",
     };
   }
 
@@ -63,18 +68,18 @@ export async function submitMatchScore(
 
   const allTeamIds = [...new Set(match.participants.map((p) => p.teamIdentifier))];
 
-  if (!allTeamIds.includes(winningTeamIdentifier)) {
+  if (!isDraw && !allTeamIds.includes(winningTeamIdentifier!)) {
     return {
       success: false,
       error: `Team "${winningTeamIdentifier}" is not in this match. Valid teams: ${allTeamIds.join(", ")}.`,
     };
   }
 
-  // --- Order teams: winner first so rank[0] === 1 ---
-  const orderedTeamIds = [
-    winningTeamIdentifier,
-    ...allTeamIds.filter((t) => t !== winningTeamIdentifier),
-  ];
+  // --- Order teams: winner first so rank[0] === 1; for a draw, order is
+  //     arbitrary since every team shares rank 1. ---
+  const orderedTeamIds = isDraw
+    ? allTeamIds
+    : [winningTeamIdentifier!, ...allTeamIds.filter((t) => t !== winningTeamIdentifier)];
 
   type ParticipantSlot = {
     participantId: string;
@@ -101,12 +106,19 @@ export async function submitMatchScore(
     team.map((p) => ({ mu: p.muBefore, sigma: p.sigmaBefore }))
   );
 
-  // rank[i] = finishing position for teams[i]; 1 = winner.
-  const ranks = orderedTeamIds.map((_, i) => i + 1);
+  // rank[i] = finishing position for teams[i]; 1 = winner, tied ranks = draw.
+  const ranks = isDraw ? orderedTeamIds.map(() => 1) : orderedTeamIds.map((_, i) => i + 1);
+
+  const meta =
+    match.sport.ratingAlgorithm.trim().toLowerCase() === "openskill" && options?.teamScores
+      ? {
+          scores: orderedTeamIds.map((id) => options.teamScores![id]),
+        }
+      : undefined;
 
   let updatedRatings: ReturnType<RatingEngine["rate"]>;
   try {
-    updatedRatings = engine.rate(engineTeams, ranks);
+    updatedRatings = engine.rate(engineTeams, ranks, meta);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, error: `Rating engine error: ${msg}` };
@@ -122,13 +134,17 @@ export async function submitMatchScore(
   };
 
   const updates: UpdatePayload[] = teamGroups.flatMap((team, teamIdx) => {
-    const outcome: MatchOutcome = teamIdx === 0 ? MatchOutcome.WIN : MatchOutcome.LOSS;
+    const teamOutcome: MatchOutcome = isDraw
+      ? MatchOutcome.DRAW
+      : teamIdx === 0
+      ? MatchOutcome.WIN
+      : MatchOutcome.LOSS;
     return team.map((player, playerIdx) => ({
       participantId: player.participantId,
       userId: player.userId,
       muAfter: updatedRatings[teamIdx][playerIdx].mu,
       sigmaAfter: updatedRatings[teamIdx][playerIdx].sigma,
-      outcome,
+      outcome: teamOutcome,
     }));
   });
 
@@ -200,7 +216,7 @@ function fetchMatch(matchId: string) {
   return prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      sport: { select: { ratingAlgorithm: true } },
+      sport: { select: { ratingAlgorithm: true, defaultRules: true } },
       participants: {
         select: {
           id: true,

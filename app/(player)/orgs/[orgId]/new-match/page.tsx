@@ -43,6 +43,7 @@ export default async function NewMatchPage({
   const sports = await prisma.sport.findMany({
     where: { isActive: true, organizationSports: { some: { organizationId: orgId } } },
     orderBy: { name: "asc" },
+    select: { id: true, name: true, minTeamSize: true, maxTeamSize: true },
   });
 
   return (
@@ -65,7 +66,7 @@ export default async function NewMatchPage({
 
       <NewMatchForm
         organizationId={organization.id}
-        sports={sports.map((s) => ({ id: s.id, name: s.name }))}
+        sports={sports}
         members={organization.organizationUsers.map((m) => ({
           id: m.userId,
           name: m.user.name ?? m.user.email,

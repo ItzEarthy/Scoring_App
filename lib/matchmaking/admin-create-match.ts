@@ -25,8 +25,8 @@ export async function createAdminMatchAction(
 
   const organizationId = formData.get("organizationId");
   const sportId = formData.get("sportId");
-  const playerAId = formData.get("playerAId");
-  const playerBId = formData.get("playerBId");
+  const teamA = formData.getAll("teamA[]").filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  const teamB = formData.getAll("teamB[]").filter((v): v is string => typeof v === "string" && v.trim() !== "");
 
   if (typeof organizationId !== "string" || !organizationId.trim()) {
     return { status: "error", message: "Missing organization." };
@@ -34,11 +34,13 @@ export async function createAdminMatchAction(
   if (typeof sportId !== "string" || !sportId.trim()) {
     return { status: "error", message: "Choose a sport." };
   }
-  if (typeof playerAId !== "string" || typeof playerBId !== "string" || !playerAId || !playerBId) {
-    return { status: "error", message: "Choose two players." };
+  if (teamA.length === 0 || teamB.length === 0) {
+    return { status: "error", message: "Both teams need at least one player." };
   }
-  if (playerAId === playerBId) {
-    return { status: "error", message: "Choose two different players." };
+
+  const allPlayerIds = [...teamA, ...teamB];
+  if (new Set(allPlayerIds).size !== allPlayerIds.length) {
+    return { status: "error", message: "A player can't be on both teams (or listed twice)." };
   }
 
   const membership = await prisma.organizationUser.findUnique({
@@ -50,13 +52,16 @@ export async function createAdminMatchAction(
   }
 
   const [sport, orgSport, participantMembers] = await Promise.all([
-    prisma.sport.findUnique({ where: { id: sportId }, select: { id: true, isActive: true, ratingAlgorithm: true } }),
+    prisma.sport.findUnique({
+      where: { id: sportId },
+      select: { id: true, isActive: true, ratingAlgorithm: true, minTeamSize: true, maxTeamSize: true },
+    }),
     prisma.organizationSport.findUnique({
       where: { organizationId_sportId: { organizationId, sportId } },
       select: { id: true },
     }),
     prisma.organizationUser.findMany({
-      where: { organizationId, userId: { in: [playerAId, playerBId] } },
+      where: { organizationId, userId: { in: allPlayerIds } },
       select: { userId: true },
     }),
   ]);
@@ -64,13 +69,31 @@ export async function createAdminMatchAction(
   if (!sport || !sport.isActive || !orgSport) {
     return { status: "error", message: "That sport isn't available." };
   }
-  if (participantMembers.length !== 2) {
-    return { status: "error", message: "Both players must be members of this organization." };
+  if (participantMembers.length !== allPlayerIds.length) {
+    return { status: "error", message: "All players must be members of this organization." };
+  }
+
+  const maxTeamSize = sport.maxTeamSize ?? Infinity;
+  if (teamA.length < sport.minTeamSize || teamA.length > maxTeamSize) {
+    return {
+      status: "error",
+      message: `Team A needs ${
+        sport.minTeamSize === maxTeamSize ? `exactly ${sport.minTeamSize}` : `at least ${sport.minTeamSize}`
+      } player(s) for this sport.`,
+    };
+  }
+  if (teamB.length < sport.minTeamSize || teamB.length > maxTeamSize) {
+    return {
+      status: "error",
+      message: `Team B needs ${
+        sport.minTeamSize === maxTeamSize ? `exactly ${sport.minTeamSize}` : `at least ${sport.minTeamSize}`
+      } player(s) for this sport.`,
+    };
   }
 
   const engine = getRatingEngine(sport.ratingAlgorithm);
   const ratings = await prisma.playerRating.findMany({
-    where: { sportId, userId: { in: [playerAId, playerBId] }, isActive: true },
+    where: { sportId, userId: { in: allPlayerIds }, isActive: true },
     select: { userId: true, mu: true, sigma: true },
   });
 
@@ -78,8 +101,6 @@ export async function createAdminMatchAction(
     const r = ratings.find((row: { userId: string; mu: number; sigma: number }) => row.userId === id);
     return { mu: r?.mu ?? engine.defaultRating.mu, sigma: r?.sigma ?? engine.defaultRating.sigma };
   };
-  const a = ratingFor(playerAId);
-  const b = ratingFor(playerBId);
 
   const match = await prisma.$transaction(async (tx) => {
     const created = await tx.match.create({
@@ -89,8 +110,14 @@ export async function createAdminMatchAction(
         status: MatchStatus.SCHEDULED,
         participants: {
           create: [
-            { userId: playerAId, teamIdentifier: "team_a", muBefore: a.mu, sigmaBefore: a.sigma },
-            { userId: playerBId, teamIdentifier: "team_b", muBefore: b.mu, sigmaBefore: b.sigma },
+            ...teamA.map((id) => {
+              const r = ratingFor(id);
+              return { userId: id, teamIdentifier: "team_a", muBefore: r.mu, sigmaBefore: r.sigma };
+            }),
+            ...teamB.map((id) => {
+              const r = ratingFor(id);
+              return { userId: id, teamIdentifier: "team_b", muBefore: r.mu, sigmaBefore: r.sigma };
+            }),
           ],
         },
       },

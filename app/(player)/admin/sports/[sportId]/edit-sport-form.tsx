@@ -23,11 +23,15 @@ export function EditSportForm({
   name,
   ratingAlgorithm,
   defaultRules,
+  minTeamSize,
+  maxTeamSize,
 }: {
   sportId: string;
   name: string;
   ratingAlgorithm: string;
   defaultRules: string;
+  minTeamSize: number;
+  maxTeamSize: number | null;
 }) {
   const [state, formAction] = useActionState(updateSportAction, initialState);
 
@@ -68,6 +72,27 @@ export function EditSportForm({
             defaultValue={defaultRules}
             rows={1}
             className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-mono text-sm text-foreground"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="minTeamSize" className="text-sm font-medium text-foreground">
+            Min team size
+          </label>
+          <Input id="minTeamSize" name="minTeamSize" type="number" min={1} defaultValue={minTeamSize} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="maxTeamSize" className="text-sm font-medium text-foreground">
+            Max team size
+          </label>
+          <Input
+            id="maxTeamSize"
+            name="maxTeamSize"
+            type="number"
+            min={1}
+            defaultValue={maxTeamSize ?? undefined}
+            placeholder="Blank = no max"
           />
         </div>
       </div>

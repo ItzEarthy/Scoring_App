@@ -58,6 +58,20 @@ export function CreateSportForm() {
             className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-mono text-sm text-foreground"
           />
         </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="minTeamSize" className="text-sm font-medium text-foreground">
+            Min team size
+          </label>
+          <Input id="minTeamSize" name="minTeamSize" type="number" min={1} defaultValue={1} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="maxTeamSize" className="text-sm font-medium text-foreground">
+            Max team size
+          </label>
+          <Input id="maxTeamSize" name="maxTeamSize" type="number" min={1} placeholder="Blank = no max" />
+        </div>
       </div>
 
       {state.status === "error" && (

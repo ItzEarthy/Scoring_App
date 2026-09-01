@@ -50,6 +50,8 @@ export default async function SportDetailPage({
             name={sport.name}
             ratingAlgorithm={sport.ratingAlgorithm}
             defaultRules={JSON.stringify(sport.defaultRules)}
+            minTeamSize={sport.minTeamSize}
+            maxTeamSize={sport.maxTeamSize}
           />
         </CardContent>
       </Card>

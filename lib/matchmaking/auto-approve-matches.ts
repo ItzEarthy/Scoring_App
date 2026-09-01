@@ -17,7 +17,7 @@ export async function autoApproveExpiredMatches(
   const where: Prisma.MatchWhereInput = {
     status: MatchStatus.PENDING_CONFIRMATION,
     approvalDeadline: { lt: new Date() },
-    reportedWinnerTeam: { not: null },
+    OR: [{ reportedWinnerTeam: { not: null } }, { reportedIsDraw: true }],
     ...(filter.organizationId ? { organizationId: filter.organizationId } : {}),
     ...(filter.matchId ? { id: filter.matchId } : {}),
     ...(filter.userId ? { participants: { some: { userId: filter.userId } } } : {}),
@@ -25,11 +25,18 @@ export async function autoApproveExpiredMatches(
 
   const expired = await prisma.match.findMany({
     where,
-    select: { id: true, organizationId: true, reportedWinnerTeam: true },
+    select: { id: true, organizationId: true, reportedWinnerTeam: true, reportedIsDraw: true },
   });
 
   for (const match of expired) {
-    if (!match.reportedWinnerTeam) continue;
-    await submitMatchScore(match.id, match.reportedWinnerTeam, match.organizationId);
+    // Scores were already validated at report time (report-match-score.ts),
+    // so it's safe to trust the stored outcome here without re-deriving it.
+    if (match.reportedIsDraw) {
+      await submitMatchScore(match.id, match.organizationId, { draw: true });
+    } else if (match.reportedWinnerTeam) {
+      await submitMatchScore(match.id, match.organizationId, {
+        winnerTeamIdentifier: match.reportedWinnerTeam,
+      });
+    }
   }
 }

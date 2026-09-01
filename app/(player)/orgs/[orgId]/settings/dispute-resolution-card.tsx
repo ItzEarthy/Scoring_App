@@ -29,11 +29,14 @@ type Team = {
   players: TeamPlayer[];
 };
 
-// A team's total is only "known" once every player on it has a reported
+// A team's score is per-team, not per-player -- report-match-score.ts
+// replicates the same value across every teammate, so any one of them is
+// representative (summing them would double-count a doubles team). A
+// team's total is only "known" once every player on it has a reported
 // score -- a missing score means we can't trust a comparison either way.
 function teamTotal(team: Team): number | null {
   if (team.players.length === 0 || team.players.some((p) => p.score === null)) return null;
-  return team.players.reduce((sum, p) => sum + (p.score ?? 0), 0);
+  return team.players[0].score;
 }
 
 function ResolveSubmit({ disabled }: { disabled: boolean }) {

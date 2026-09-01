@@ -30,12 +30,19 @@ many sports.
 - **Org roles** (`Role` enum: `MEMBER`, `ADMIN`, `OWNER`) — scoped per-organization via
   `OrganizationUser`. OWNER is set automatically on org creation; promotion/demotion is
   `PLANNED` (see §5.4).
-- **Sport** — a global catalog entry (e.g. Tennis, Chess). Has a `ratingAlgorithm`
-  (`"glicko2"` or anything else -> OpenSkill) and `defaultRules` JSON (bestOf, pointsToWin, etc.
-  — currently stored but not enforced).
-- **PlayerRating** — one row per (user, organization, sport). A player's rating in Tennis at
-  Club A is independent of their rating in Tennis at Club B. This is intentional and central to
-  the product (see §1).
+- **Sport** — a global catalog entry (e.g. Tennis, Tennis - Doubles, Basketball). Has a
+  `ratingAlgorithm` (`"glicko2"` or anything else -> OpenSkill), `defaultRules` JSON (bestOf,
+  pointsToWin, etc. — enforced at match completion, see §5.3), and `minTeamSize`/`maxTeamSize`
+  (exact size for singles/doubles when equal, open-ended minimum when `maxTeamSize` is null).
+  Racquet/individual sports that support both formats are split into two catalog rows (e.g.
+  "Tennis" + "Tennis - Doubles") rather than one sport with a variable format, so each format
+  gets its own matchmaking pool and rating. Glicko-2 is used only for exact-size-<=2 sports
+  (doubles teammates' ratings are averaged into one virtual opponent for the match calculation,
+  then the resulting delta is split equally back to both); open-ended team sports use OpenSkill,
+  which natively supports per-team score and margin-of-victory weighting.
+- **PlayerRating** — one row per (user, sport), global across organizations. A player's rating in
+  Tennis is the same at every club they belong to (this superseded the original per-org design —
+  see the `make_player_ratings_global` migration).
 - **Match modes** (`platformConfig.match_mode`, see §5.2) — `free`, `queue`, `pool`, `admin`.
   Each org picks one (or a per-sport override, TBD) to define how matches get created.
 - **Approval modes** (`platformConfig.approval_mode`) — `player_mutual` (both participants must
@@ -166,9 +173,13 @@ Decisions made in product-discovery conversation on 2026-08-31 that aren't obvio
 
 | Feature | Status | Notes |
 |---|---|---|
-| Global sport list (seed-only) | `DONE` | `prisma/seed.ts`; 5 sports, 2 rating algorithms. |
-| In-app sport catalog management (create/edit/deactivate) | `PLANNED` | Owned by Site Admin — see §5.5. Part of the "foundational" build priority. |
-| Enforcement of `Sport.defaultRules` (bestOf, pointsToWin, etc.) | `PLANNED` | Currently stored as inert JSON metadata. |
+| Global sport list (seed-only) | `DONE` | `prisma/seed.ts`; 26 sports (racquet sports split into singles + "- Doubles" rows), 2 rating algorithms. |
+| In-app sport catalog management (create/edit/deactivate) | `DONE` | Owned by Site Admin — see §5.5. Includes `minTeamSize`/`maxTeamSize`; the form rejects a Glicko-2 sport with a max team size above 2. |
+| Enforcement of `Sport.defaultRules` (bestOf, pointsToWin, etc.) | `DONE` | `lib/matchmaking/scoring/` — a per-sport score validator (two shared shapes: single cumulative number, or discrete sets) derives the winner (or draw) from the reported score and blocks submission on an invalid/incomplete result. Wired into `report-match-score.ts` / `submit-match-score.ts`. |
+| Glicko-2 doubles averaging | `DONE` | `lib/matchmaking/rating-engines/glicko2-engine.ts` — a doubles team's two ratings are averaged into one virtual opponent for the match, and the resulting delta is applied identically to both teammates. |
+| OpenSkill score/margin-of-victory weighting | `DONE` | `lib/matchmaking/rating-engines/openskill-engine.ts` — uses the `openskill` package's native `score`/`margin` options instead of plain rank, so a blowout moves rating more than a narrow win. |
+| Conservative-rating display scale | `DONE` | `lib/matchmaking/rating-engines/conservative-rating.ts` — display-only transform (never persisted/fed back into the engines) so a brand-new player reads 1000 in both Glicko-2 and OpenSkill. |
+| Queue-based matchmaking for open-ended team sports (min team size > 2) | `PLANNED` | Fair N-a-side skill-balanced drafting from a queue is out of scope so far; these sports (Basketball, Soccer, Volleyball, Softball, Foosball, Air Hockey, Shuffleboard, Cornhole, Spikeball) are schedulable only via admin-created matches (`admin-create-match.ts`) today — joining the queue for them is blocked with a message. Singles and doubles sports queue normally; `form-matches.ts` also groups doubles queue entries into balanced 2v2s. |
 
 ### 5.4 Roles & permissions
 

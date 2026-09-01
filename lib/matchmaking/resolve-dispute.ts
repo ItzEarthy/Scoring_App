@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submitMatchScore } from "@/lib/matchmaking/submit-match-score";
+import { validateAndDeriveScore } from "@/lib/matchmaking/scoring";
 import { MatchStatus, CourtStatus, Role } from "@/app/generated/prisma/enums";
 
 export type ResolveDisputeState = {
@@ -54,7 +55,12 @@ export async function forceMatchWinnerAction(
 
   const match = await prisma.match.findUnique({
     where: { id: matchId },
-    select: { organizationId: true, status: true },
+    select: {
+      organizationId: true,
+      status: true,
+      sport: { select: { name: true, defaultRules: true } },
+      participants: { select: { teamIdentifier: true, score: true } },
+    },
   });
   if (!match || match.organizationId !== orgId) {
     return { status: "error", message: "Match not found." };
@@ -63,9 +69,28 @@ export async function forceMatchWinnerAction(
     return { status: "error", message: "Only disputed matches can be resolved this way." };
   }
 
-  const result = await submitMatchScore(matchId, winningTeamIdentifier, orgId, {
-    allowFromDisputed: true,
-  });
+  // Best-effort: re-derive team scores from whatever was already persisted
+  // so OpenSkill sports still get the margin-of-victory bonus. A dispute
+  // override must never itself get blocked by strict validation, so any
+  // validation failure here just falls back to plain rank-based rating.
+  const teamIds = [...new Set(match.participants.map((p) => p.teamIdentifier))];
+  const teamScoresInput: Record<string, number> = {};
+  for (const id of teamIds) {
+    const rep = match.participants.find((p) => p.teamIdentifier === id);
+    if (rep?.score != null) teamScoresInput[id] = rep.score;
+  }
+  const rederived =
+    Object.keys(teamScoresInput).length === teamIds.length
+      ? validateAndDeriveScore(match.sport, teamIds, { single: teamScoresInput })
+      : null;
+  const teamScores = rederived?.valid ? rederived.teamScores : undefined;
+
+  const result = await submitMatchScore(
+    matchId,
+    orgId,
+    { winnerTeamIdentifier: winningTeamIdentifier },
+    { allowFromDisputed: true, teamScores }
+  );
 
   revalidatePath(`/matches/${matchId}`);
   revalidatePath(`/orgs/${orgId}/settings`);

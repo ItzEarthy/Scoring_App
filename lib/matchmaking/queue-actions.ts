@@ -37,7 +37,7 @@ export async function joinQueueAction(
   }
 
   const [sport, orgSport] = await Promise.all([
-    prisma.sport.findUnique({ where: { id: sportId }, select: { isActive: true } }),
+    prisma.sport.findUnique({ where: { id: sportId }, select: { isActive: true, minTeamSize: true } }),
     prisma.organizationSport.findUnique({
       where: { organizationId_sportId: { organizationId, sportId } },
       select: { id: true },
@@ -45,6 +45,12 @@ export async function joinQueueAction(
   ]);
   if (!sport || !sport.isActive || !orgSport) {
     return { status: "error", message: "That sport isn't available for this organization." };
+  }
+  if (sport.minTeamSize > 2) {
+    return {
+      status: "error",
+      message: "This sport requires admin-scheduled matches -- ask an org admin to create one.",
+    };
   }
 
   try {

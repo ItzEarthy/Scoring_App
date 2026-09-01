@@ -11,6 +11,7 @@ import { Role } from "@/app/generated/prisma/enums";
 import { MembersList } from "./members-list";
 import { joinOrganizationAction } from "@/lib/organizations/manage-organizations";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
+import { conservativeRating } from "@/lib/matchmaking/rating-engines/conservative-rating";
 import { Button } from "@/components/ui/button";
 
 type PlatformConfig = {
@@ -112,7 +113,7 @@ export default async function OrgPage({
         },
         include: {
           user: { select: { id: true, name: true, email: true } },
-          sport: { select: { id: true, name: true } },
+          sport: { select: { id: true, name: true, ratingAlgorithm: true } },
         },
         orderBy: { mu: "desc" },
       })
@@ -186,7 +187,11 @@ export default async function OrgPage({
                             {r.user.name ?? r.user.email}
                           </TableCell>
                           <TableCell className="scoreboard text-right text-lg text-brand-primary">
-                            {Math.round(r.mu)}
+                            {conservativeRating(
+                              r.sport.ratingAlgorithm === "glicko2" ? "glicko2" : "openskill",
+                              r.mu,
+                              r.sigma
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

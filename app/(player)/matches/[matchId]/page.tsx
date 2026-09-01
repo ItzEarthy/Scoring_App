@@ -12,6 +12,7 @@ import { ReportScoreForm } from "./report-score-form";
 import { LiveScoreboard } from "./live-scoreboard";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
 import { mintJoinToken } from "@/lib/realtime/token";
+import { getScoreConfig } from "@/lib/matchmaking/scoring";
 
 const TERMINAL_STATUSES: MatchStatus[] = [
   MatchStatus.COMPLETED,
@@ -44,7 +45,7 @@ export default async function MatchPage({
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      sport: { select: { name: true } },
+      sport: { select: { name: true, defaultRules: true } },
       court: { select: { name: true } },
       organization: { select: { id: true, name: true, platformConfig: true } },
       participants: {
@@ -59,6 +60,7 @@ export default async function MatchPage({
 
   const isParticipant = match.participants.some((p) => p.userId === userId);
   const canReportScore = isParticipant && !TERMINAL_STATUSES.includes(match.status);
+  const scoreConfig = getScoreConfig(match.sport);
 
   const teamOrder = [...new Set(match.participants.map((p) => p.teamIdentifier))];
   const teams = teamOrder.map((teamIdentifier, i) => ({
@@ -198,6 +200,8 @@ export default async function MatchPage({
         <ReportScoreForm
           matchId={match.id}
           orgId={match.organization.id}
+          shape={scoreConfig.shape}
+          maxSets={scoreConfig.shape === "sets" ? 2 * scoreConfig.rules.setsToWin - 1 : undefined}
           teams={teams.map((t) => ({
             teamIdentifier: t.teamIdentifier,
             label: t.label,
@@ -206,7 +210,6 @@ export default async function MatchPage({
               userId: p.userId,
               name: p.name,
               avatarBase64: p.avatarBase64,
-              score: p.score,
             })),
           }))}
         />

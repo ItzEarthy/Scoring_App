@@ -15,10 +15,20 @@ export type SportFormState = {
 // must not allow a typo/unsupported value through as if it were valid.
 const RATING_ALGORITHMS = new Set(["openskill", "glicko2"]);
 
-function parseSportFields(formData: FormData): { name: string; ratingAlgorithm: string; defaultRules: object } | { error: string } {
+type ParsedSportFields = {
+  name: string;
+  ratingAlgorithm: string;
+  defaultRules: object;
+  minTeamSize: number;
+  maxTeamSize: number | null;
+};
+
+function parseSportFields(formData: FormData): ParsedSportFields | { error: string } {
   const name = formData.get("name");
   const ratingAlgorithm = formData.get("ratingAlgorithm");
   const defaultRulesRaw = formData.get("defaultRules");
+  const minTeamSizeRaw = formData.get("minTeamSize");
+  const maxTeamSizeRaw = formData.get("maxTeamSize");
 
   if (typeof name !== "string" || !name.trim()) {
     return { error: "Enter a sport name." };
@@ -41,7 +51,25 @@ function parseSportFields(formData: FormData): { name: string; ratingAlgorithm: 
     return { error: "Default rules must be valid JSON." };
   }
 
-  return { name: name.trim(), ratingAlgorithm, defaultRules };
+  const minTeamSize = typeof minTeamSizeRaw === "string" && minTeamSizeRaw.trim() !== "" ? Number(minTeamSizeRaw) : 1;
+  if (!Number.isInteger(minTeamSize) || minTeamSize < 1) {
+    return { error: "Minimum team size must be a whole number of at least 1." };
+  }
+
+  let maxTeamSize: number | null = null;
+  if (typeof maxTeamSizeRaw === "string" && maxTeamSizeRaw.trim() !== "") {
+    const parsedMax = Number(maxTeamSizeRaw);
+    if (!Number.isInteger(parsedMax) || parsedMax < minTeamSize) {
+      return { error: "Maximum team size must be a whole number at least as large as the minimum (or left blank for no maximum)." };
+    }
+    maxTeamSize = parsedMax;
+  }
+
+  if (ratingAlgorithm === "glicko2" && (maxTeamSize == null || maxTeamSize > 2)) {
+    return { error: "Glicko-2 only supports singles or doubles -- set a maximum team size of 1 or 2." };
+  }
+
+  return { name: name.trim(), ratingAlgorithm, defaultRules, minTeamSize, maxTeamSize };
 }
 
 export async function createSportAction(
@@ -64,6 +92,8 @@ export async function createSportAction(
         name: parsed.name,
         ratingAlgorithm: parsed.ratingAlgorithm,
         defaultRules: parsed.defaultRules,
+        minTeamSize: parsed.minTeamSize,
+        maxTeamSize: parsed.maxTeamSize,
       },
     });
   } catch (err) {
@@ -103,6 +133,8 @@ export async function updateSportAction(
         name: parsed.name,
         ratingAlgorithm: parsed.ratingAlgorithm,
         defaultRules: parsed.defaultRules,
+        minTeamSize: parsed.minTeamSize,
+        maxTeamSize: parsed.maxTeamSize,
       },
     });
   } catch (err) {

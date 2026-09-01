@@ -14,36 +14,74 @@ async function main() {
   // Sports catalog. Demo matches/ratings below only exercise a subset
   // (Table Tennis, Foosball, Billiards); the rest exist as selectable
   // sports without seeded activity.
+  //
+  // Racquet/individual sports that support both formats are split into two
+  // catalog rows (singles + "- Doubles") so each has its own matchmaking
+  // pool and an exact team size. Glicko-2 is used only for these
+  // exact-size-<=2 rows (with the two-teammate ratings averaged into one
+  // virtual opponent for doubles, see lib/matchmaking/rating-engines).
+  // Genuinely team-format sports get an open-ended minimum team size
+  // (maxTeamSize: null) and use OpenSkill, which natively supports score
+  // and margin-of-victory weighting for arbitrary squad sizes.
   // ---------------------------------------------------------------------
+  const soloRules = {
+    Tennis: { setsToWin: 2, gamesPerSet: 6, tiebreakerAt: 6 },
+    "Table Tennis": { pointsToWin: 11, bestOf: 5, winBy: 2 },
+    Squash: { pointsToWin: 11, bestOf: 5, scoringSystem: "PARS" },
+    Racquetball: { pointsToWin: 15, tiebreakerPoints: 11 },
+    Badminton: { pointsToWin: 21, bestOf: 3, capAt: 30 },
+    Pickleball: { pointsToWin: 11, winBy: 2, serveScoringOnly: true },
+  } as const;
+
   const sportCatalog = [
-    { name: "Tennis", ratingAlgorithm: "glicko2", defaultRules: { setsToWin: 2, gamesPerSet: 6, tiebreakerAt: 6 } },
-    { name: "Table Tennis", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 11, bestOf: 5, winBy: 2 } },
-    { name: "Pickleball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 11, winBy: 2, serveScoringOnly: true } },
-    { name: "Badminton", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, bestOf: 3, capAt: 30 } },
-    { name: "Squash", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 11, bestOf: 5, scoringSystem: "PARS" } },
-    { name: "Racquetball", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 15, tiebreakerPoints: 11 } },
-    { name: "Billiards", ratingAlgorithm: "glicko2", defaultRules: { format: "8-Ball", racesTo: 5, callPocket: true } },
-    { name: "Snooker", ratingAlgorithm: "glicko2", defaultRules: { framesToWin: 3, reds: 15 } },
-    { name: "Darts", ratingAlgorithm: "glicko2", defaultRules: { format: "501", finish: "double", legsToWin: 3 } },
-    { name: "Foosball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 5, noSpinning: true } },
-    { name: "Air Hockey", ratingAlgorithm: "glicko2", defaultRules: { pointsToWin: 7, timeLimitMinutes: 10 } },
-    { name: "Shuffleboard", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 15, frameLimit: 10 } },
-    { name: "Golf", ratingAlgorithm: "glicko2", defaultRules: { format: "Stroke Play", holes: 18 } },
-    { name: "Bowling", ratingAlgorithm: "glicko2", defaultRules: { frames: 10, scoringMethod: "traditional" } },
-    { name: "Cornhole", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, cancellationScoring: true } },
-    { name: "Spikeball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, winBy: 2, rallyScoring: true } },
-    { name: "Volleyball", ratingAlgorithm: "openskill", defaultRules: { setsToWin: 3, pointsPerSet: 25, tiebreakerPoints: 15 } },
-    { name: "Basketball", ratingAlgorithm: "openskill", defaultRules: { format: "5v5", quarters: 4, quarterLengthMinutes: 10 } },
-    { name: "Soccer", ratingAlgorithm: "openskill", defaultRules: { format: "11v11", halves: 2, halfLengthMinutes: 45 } },
-    { name: "Softball", ratingAlgorithm: "openskill", defaultRules: { format: "Slow Pitch", innings: 7 } },
+    // Racquet sports: singles + doubles, both Glicko-2.
+    ...Object.entries(soloRules).flatMap(([name, defaultRules]) => [
+      { name, ratingAlgorithm: "glicko2", defaultRules, minTeamSize: 1, maxTeamSize: 1 },
+      {
+        name: `${name} - Doubles`,
+        ratingAlgorithm: "glicko2",
+        defaultRules,
+        minTeamSize: 2,
+        maxTeamSize: 2,
+      },
+    ]),
+
+    // Individual-only sports: no doubles variant, Glicko-2.
+    { name: "Billiards", ratingAlgorithm: "glicko2", defaultRules: { format: "8-Ball", racesTo: 5, callPocket: true }, minTeamSize: 1, maxTeamSize: 1 },
+    { name: "Snooker", ratingAlgorithm: "glicko2", defaultRules: { framesToWin: 3, reds: 15 }, minTeamSize: 1, maxTeamSize: 1 },
+    { name: "Darts", ratingAlgorithm: "glicko2", defaultRules: { format: "501", finish: "double", legsToWin: 3 }, minTeamSize: 1, maxTeamSize: 1 },
+    { name: "Golf", ratingAlgorithm: "glicko2", defaultRules: { format: "Stroke Play", holes: 18 }, minTeamSize: 1, maxTeamSize: 1 },
+    { name: "Bowling", ratingAlgorithm: "glicko2", defaultRules: { frames: 10, scoringMethod: "traditional" }, minTeamSize: 1, maxTeamSize: 1 },
+
+    // Team-format sports: open-ended minimum, OpenSkill.
+    { name: "Foosball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 5, noSpinning: true }, minTeamSize: 1, maxTeamSize: null },
+    { name: "Air Hockey", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 7, timeLimitMinutes: 10 }, minTeamSize: 1, maxTeamSize: null },
+    { name: "Shuffleboard", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 15, frameLimit: 10 }, minTeamSize: 1, maxTeamSize: null },
+    { name: "Cornhole", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, cancellationScoring: true }, minTeamSize: 1, maxTeamSize: null },
+    { name: "Spikeball", ratingAlgorithm: "openskill", defaultRules: { pointsToWin: 21, winBy: 2, rallyScoring: true }, minTeamSize: 2, maxTeamSize: null },
+    { name: "Volleyball", ratingAlgorithm: "openskill", defaultRules: { setsToWin: 3, pointsPerSet: 25, tiebreakerPoints: 15 }, minTeamSize: 6, maxTeamSize: null },
+    { name: "Basketball", ratingAlgorithm: "openskill", defaultRules: { format: "5v5", quarters: 4, quarterLengthMinutes: 10 }, minTeamSize: 5, maxTeamSize: null },
+    { name: "Soccer", ratingAlgorithm: "openskill", defaultRules: { format: "11v11", halves: 2, halfLengthMinutes: 45, allowDraw: true }, minTeamSize: 11, maxTeamSize: null },
+    { name: "Softball", ratingAlgorithm: "openskill", defaultRules: { format: "Slow Pitch", innings: 7 }, minTeamSize: 9, maxTeamSize: null },
   ] as const;
 
   const sportByName = new Map<string, Awaited<ReturnType<typeof prisma.sport.upsert>>>();
   for (const s of sportCatalog) {
     const sport = await prisma.sport.upsert({
       where: { name: s.name },
-      update: {},
-      create: { name: s.name, ratingAlgorithm: s.ratingAlgorithm, defaultRules: s.defaultRules },
+      update: {
+        ratingAlgorithm: s.ratingAlgorithm,
+        defaultRules: s.defaultRules,
+        minTeamSize: s.minTeamSize,
+        maxTeamSize: s.maxTeamSize,
+      },
+      create: {
+        name: s.name,
+        ratingAlgorithm: s.ratingAlgorithm,
+        defaultRules: s.defaultRules,
+        minTeamSize: s.minTeamSize,
+        maxTeamSize: s.maxTeamSize,
+      },
     });
     sportByName.set(s.name, sport);
   }
