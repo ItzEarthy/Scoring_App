@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { InfoNote } from "@/components/ui/info-note";
 import { ShieldAlert } from "lucide-react";
 import {
   updateOrgSettingsAction,
@@ -42,6 +43,15 @@ export function MatchmakingSettingsForm({
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="organizationId" value={organizationId} />
+
+      <InfoNote>
+        <p>
+          <span className="font-medium text-foreground">Player mutual confirmation</span> requires both
+          sides to report the same winner; conflicting reports open a dispute for an admin to resolve.{" "}
+          <span className="font-medium text-foreground">Admin forced</span> skips confirmation entirely —
+          only admins can submit a final score, so disputes can&apos;t happen.
+        </p>
+      </InfoNote>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex flex-col gap-2">

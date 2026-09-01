@@ -152,9 +152,8 @@ export async function submitMatchScore(
       for (const u of updates) {
         await tx.playerRating.upsert({
           where: {
-            userId_organizationId_sportId: {
+            userId_sportId: {
               userId: u.userId,
-              organizationId: orgId,
               sportId: match.sportId,
             },
           },
@@ -164,7 +163,6 @@ export async function submitMatchScore(
           },
           create: {
             userId: u.userId,
-            organizationId: orgId,
             sportId: match.sportId,
             mu: u.muAfter,
             sigma: u.sigmaAfter,

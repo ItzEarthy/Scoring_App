@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { InfoNote } from "@/components/ui/info-note";
 import { MatchStatus, Role } from "@/app/generated/prisma/enums";
 import { Trophy, Sliders, LayoutGrid, Settings, ShieldAlert } from "lucide-react";
 import { SportsSettingsForm } from "./sports-settings-form";
@@ -102,10 +103,12 @@ export default async function OrgSettingsPage({
                 Disputed Matches
               </h2>
             </div>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Participants reported conflicting winners for these matches. Pick the actual winner to
-              finalize ratings, or void the match if it shouldn&apos;t count at all.
-            </p>
+            <InfoNote tone="warning" className="mb-4">
+              <p>
+                Participants reported conflicting winners for these matches. Pick the actual winner to
+                finalize ratings, or void the match if it shouldn&apos;t count at all.
+              </p>
+            </InfoNote>
             <div className="flex flex-col gap-4">
               {disputedMatches.map((match) => {
                 const teamOrder = [...new Set(match.participants.map((p) => p.teamIdentifier))];
@@ -144,9 +147,13 @@ export default async function OrgSettingsPage({
           <Trophy className="h-5 w-5 text-brand-primary" />
           <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Sports</h2>
         </div>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Choose which sports from the platform catalog members of this organization can play.
-        </p>
+        <InfoNote className="mb-4">
+          <p>Choose which sports from the platform catalog members of this organization can play.</p>
+          <p className="text-xs">
+            <span className="font-medium text-foreground">GLICKO2</span> suits head-to-head matches;{" "}
+            <span className="font-medium text-foreground">OPENSKILL</span> supports teams of any size.
+          </p>
+        </InfoNote>
         <SportsSettingsForm
           organizationId={organization.id}
           sports={allSports.map((s) => ({
@@ -188,10 +195,12 @@ export default async function OrgSettingsPage({
             Courts &amp; Tables
           </h2>
         </div>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Courts bound to a sport are only used for that sport&apos;s matches; leave a court unbound to make it
-          usable for any sport. Matches auto-assign the next available court when one is free.
-        </p>
+        <InfoNote className="mb-4">
+          <p>
+            Courts bound to a sport are only used for that sport&apos;s matches; leave a court unbound to
+            make it usable for any sport. Matches auto-assign the next available court when one is free.
+          </p>
+        </InfoNote>
         <div className="flex flex-col gap-4">
           <CourtsSettingsForm
             organizationId={organization.id}

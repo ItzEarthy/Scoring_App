@@ -110,15 +110,9 @@ export async function removeMemberAction(
     return { status: "error", message: "The organization owner can't be removed." };
   }
 
-  await prisma.$transaction([
-    prisma.organizationUser.delete({
-      where: { userId_organizationId: { userId: targetUserId, organizationId } },
-    }),
-    prisma.playerRating.updateMany({
-      where: { userId: targetUserId, organizationId },
-      data: { isActive: false },
-    }),
-  ]);
+  await prisma.organizationUser.delete({
+    where: { userId_organizationId: { userId: targetUserId, organizationId } },
+  });
 
   revalidatePath(`/orgs/${organizationId}`);
   return { status: "success", message: "Member removed." };

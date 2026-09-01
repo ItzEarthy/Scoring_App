@@ -70,7 +70,7 @@ export async function createAdminMatchAction(
 
   const engine = getRatingEngine(sport.ratingAlgorithm);
   const ratings = await prisma.playerRating.findMany({
-    where: { organizationId, sportId, userId: { in: [playerAId, playerBId] }, isActive: true },
+    where: { sportId, userId: { in: [playerAId, playerBId] }, isActive: true },
     select: { userId: true, mu: true, sigma: true },
   });
 

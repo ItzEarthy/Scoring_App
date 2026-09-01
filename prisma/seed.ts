@@ -117,40 +117,41 @@ async function main() {
 
   // ---------------------------------------------------------------------
   // Player ratings (seed starting points; some pre-advanced for history).
-  // Values are scaled to whichever algorithm the sport uses -- OpenSkill
-  // sports sit around mu 25 / sigma 8.3, Glicko-2 sports around rating
-  // 1500 / RD 350 -- rather than one fixed scale for every sport.
+  // Ratings are global per user+sport -- they carry over between orgs --
+  // so each (user, sport) pair appears at most once here. Values are
+  // scaled to whichever algorithm the sport uses -- OpenSkill sports sit
+  // around mu 25 / sigma 8.3, Glicko-2 sports around rating 1500 / RD 350
+  // -- rather than one fixed scale for every sport.
   // ---------------------------------------------------------------------
   const ratingSeeds: {
     userId: string;
-    organizationId: string;
     sportId: string;
     mu: number;
     sigma: number;
   }[] = [
     // Glicko-2: Table Tennis
-    { userId: alice.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1574, sigma: 155 },
-    { userId: ben.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1498, sigma: 172 },
-    { userId: chloe.id, organizationId: orgA.id, sportId: tableTennis.id, mu: 1421, sigma: 188 },
-    { userId: emma.id, organizationId: orgB.id, sportId: tableTennis.id, mu: 1591, sigma: 140 },
+    { userId: alice.id, sportId: tableTennis.id, mu: 1574, sigma: 155 },
+    { userId: ben.id, sportId: tableTennis.id, mu: 1498, sigma: 172 },
+    { userId: chloe.id, sportId: tableTennis.id, mu: 1421, sigma: 188 },
+    { userId: emma.id, sportId: tableTennis.id, mu: 1591, sigma: 140 },
 
     // OpenSkill: Foosball
-    { userId: alice.id, organizationId: orgA.id, sportId: foosball.id, mu: 25.9, sigma: 7.2 },
-    { userId: chloe.id, organizationId: orgA.id, sportId: foosball.id, mu: 23.6, sigma: 7.8 },
+    { userId: alice.id, sportId: foosball.id, mu: 25.9, sigma: 7.2 },
+    { userId: chloe.id, sportId: foosball.id, mu: 23.6, sigma: 7.8 },
 
     // Glicko-2: Billiards
-    { userId: alice.id, organizationId: orgA.id, sportId: billiards.id, mu: 1550, sigma: 210 },
-    { userId: ben.id, organizationId: orgA.id, sportId: billiards.id, mu: 1470, sigma: 225 },
+    { userId: alice.id, sportId: billiards.id, mu: 1550, sigma: 210 },
+    { userId: ben.id, sportId: billiards.id, mu: 1470, sigma: 225 },
   ];
 
   const ratingMap = new Map<string, { id: string; mu: number; sigma: number }>();
   for (const seed of ratingSeeds) {
     const rating = await prisma.playerRating.create({ data: seed });
-    ratingMap.set(`${seed.userId}:${seed.organizationId}:${seed.sportId}`, rating);
+    ratingMap.set(`${seed.userId}:${seed.sportId}`, rating);
   }
 
-  function getRating(userId: string, organizationId: string, sportId: string) {
-    const key = `${userId}:${organizationId}:${sportId}`;
+  function getRating(userId: string, sportId: string) {
+    const key = `${userId}:${sportId}`;
     const existing = ratingMap.get(key);
     if (existing) return existing;
 
@@ -267,7 +268,7 @@ async function main() {
     });
 
     for (const p of seed.participants) {
-      const current = getRating(p.user.id, seed.organizationId, seed.sportId);
+      const current = getRating(p.user.id, seed.sportId);
       const muBefore = current.mu - p.ratingDelta;
       const sigmaBefore = current.sigma;
 

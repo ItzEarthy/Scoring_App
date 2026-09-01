@@ -44,7 +44,7 @@ export async function formMatchesFromQueue(organizationId: string, sportId: stri
         select: {
           id: true,
           playerRatings: {
-            where: { organizationId, sportId },
+            where: { sportId },
             select: { mu: true, sigma: true },
           },
         },

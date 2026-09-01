@@ -133,7 +133,6 @@ model Organization {
 
   organizationUsers  OrganizationUser[]
   matches            Match[]
-  playerRatings      PlayerRating[]
   queueEntries       QueueEntry[]
   organizationSports OrganizationSport[]
   courts             Court[]
@@ -211,19 +210,17 @@ model Court {
 }
 
 model PlayerRating {
-  id             String  @id @default(cuid())
-  userId         String  @map("user_id")
-  organizationId String  @map("organization_id")
-  sportId        String  @map("sport_id")
-  mu             Float   @default(25.0)
-  sigma          Float   @default(8.333)
-  isActive       Boolean @default(true) @map("is_active")
+  id       String  @id @default(cuid())
+  userId   String  @map("user_id")
+  sportId  String  @map("sport_id")
+  mu       Float   @default(25.0)
+  sigma    Float   @default(8.333)
+  isActive Boolean @default(true) @map("is_active")
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  sport        Sport        @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sport Sport @relation(fields: [sportId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId, sportId])
+  @@unique([userId, sportId])
   @@map("player_ratings")
 }
 

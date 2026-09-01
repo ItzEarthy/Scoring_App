@@ -21,9 +21,8 @@ export default async function DashboardPage() {
       where: { userId, isActive: true },
       include: {
         sport: { select: { name: true } },
-        organization: { select: { id: true, name: true } },
       },
-      orderBy: [{ sport: { name: "asc" } }, { organization: { name: "asc" } }],
+      orderBy: { sport: { name: "asc" } },
     }),
     prisma.matchParticipant.findMany({
       where: { userId },
@@ -107,8 +106,7 @@ export default async function DashboardPage() {
                     <span className="scoreboard text-3xl text-brand-primary">{conservative}</span>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">{rating.organization.name}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       μ {rating.mu.toFixed(1)} · σ {rating.sigma.toFixed(2)}
                     </p>
                   </CardContent>

@@ -4,12 +4,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Trophy, Settings, Swords } from "lucide-react";
 import { Role } from "@/app/generated/prisma/enums";
-import { MemberRowControls } from "./member-row-controls";
+import { MembersList } from "./members-list";
 import { joinOrganizationAction } from "@/lib/organizations/manage-organizations";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
 import { Button } from "@/components/ui/button";
@@ -81,14 +80,7 @@ export default async function OrgPage({
         include: { user: { select: { id: true, name: true, email: true, avatarBase64: true } } },
         orderBy: [{ role: "asc" }, { createdAt: "asc" }],
       },
-      playerRatings: {
-        where: { isActive: true },
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-          sport: { select: { id: true, name: true } },
-        },
-        orderBy: { mu: "desc" },
-      },
+      organizationSports: { select: { sportId: true } },
       matches: {
         orderBy: { createdAt: "desc" },
         take: 8,
@@ -105,10 +97,29 @@ export default async function OrgPage({
 
   const config = (organization.platformConfig ?? {}) as PlatformConfig;
 
-  // organization.playerRatings is already ordered by mu desc from the query,
-  // so grouping by sport preserves that order within each group.
-  const sportGroups = new Map<string, { sportName: string; rows: typeof organization.playerRatings }>();
-  for (const rating of organization.playerRatings) {
+  // Ratings are global per user+sport, but an org should only ever surface
+  // the scores of its own members -- scope the lookup to this org's roster
+  // and enabled sports, and only run it at all for members.
+  const enabledSportIds = new Set(organization.organizationSports.map((os) => os.sportId));
+  const memberUserIds = organization.organizationUsers.map((m) => m.userId);
+
+  const orgRatings = isMember && memberUserIds.length > 0 && enabledSportIds.size > 0
+    ? await prisma.playerRating.findMany({
+        where: {
+          isActive: true,
+          userId: { in: memberUserIds },
+          sportId: { in: [...enabledSportIds] },
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          sport: { select: { id: true, name: true } },
+        },
+        orderBy: { mu: "desc" },
+      })
+    : [];
+
+  const sportGroups = new Map<string, { sportName: string; rows: typeof orgRatings }>();
+  for (const rating of orgRatings) {
     const key = rating.sport.id;
     if (!sportGroups.has(key)) {
       sportGroups.set(key, { sportName: rating.sport.name, rows: [] });
@@ -147,7 +158,9 @@ export default async function OrgPage({
           <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Leaderboards</h2>
         </div>
 
-        {sportGroups.size === 0 ? (
+        {!isMember ? (
+          <p className="text-sm text-muted-foreground">Join this organization to see member leaderboards.</p>
+        ) : sportGroups.size === 0 ? (
           <p className="text-sm text-muted-foreground">No ratings recorded yet for this organization.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -223,30 +236,12 @@ export default async function OrgPage({
           <Users className="h-5 w-5 text-brand-primary" />
           <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Members</h2>
         </div>
-        <div className="flex flex-col gap-2">
-          {organization.organizationUsers.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
-            >
-              <Avatar size="sm">
-                <AvatarImage src={m.user.avatarBase64 ?? undefined} alt={m.user.name ?? m.user.email} />
-                <AvatarFallback>{(m.user.name ?? m.user.email).slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="flex-1 font-medium text-foreground">{m.user.name ?? m.user.email}</span>
-              {isAdmin && m.role !== Role.OWNER && m.userId !== userId ? (
-                <MemberRowControls
-                  organizationId={organization.id}
-                  targetUserId={m.userId}
-                  targetName={m.user.name ?? m.user.email}
-                  currentRole={m.role === Role.ADMIN ? "ADMIN" : "MEMBER"}
-                />
-              ) : (
-                <Badge className="bg-brand-secondary text-foreground hover:bg-brand-secondary">{m.role}</Badge>
-              )}
-            </div>
-          ))}
-        </div>
+        <MembersList
+          organizationId={organization.id}
+          members={organization.organizationUsers}
+          isAdmin={isAdmin}
+          currentUserId={userId}
+        />
       </section>
 
       {/* Admin settings */}

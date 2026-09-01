@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getVerifiedSiteAdminUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Trophy, Plus } from "lucide-react";
 import { CreateSportForm } from "./create-sport-form";
+import { SportsCatalogGrid } from "./sports-catalog-grid";
 
 export default async function SportsCatalogPage() {
   const siteAdminUserId = await getVerifiedSiteAdminUserId();
@@ -38,31 +38,14 @@ export default async function SportsCatalogPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sports.map((sport) => (
-              <Link key={sport.id} href={`/admin/sports/${sport.id}`}>
-                <Card className="h-full transition hover:border-brand-primary">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center justify-between text-base">
-                      <span>{sport.name}</span>
-                      <Badge
-                        className={
-                          sport.isActive
-                            ? "bg-brand-secondary text-foreground hover:bg-brand-secondary"
-                            : "bg-muted text-muted-foreground hover:bg-muted"
-                        }
-                      >
-                        {sport.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{sport.ratingAlgorithm}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <SportsCatalogGrid
+            sports={sports.map((s) => ({
+              id: s.id,
+              name: s.name,
+              ratingAlgorithm: s.ratingAlgorithm,
+              isActive: s.isActive,
+            }))}
+          />
         )}
       </section>
 
