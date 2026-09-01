@@ -15,11 +15,7 @@ const initialState: CreateOrganizationState = { status: "idle" };
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button
-      type="submit"
-      disabled={pending}
-      className="bg-brand-primary text-white hover:opacity-90"
-    >
+    <Button type="submit" disabled={pending}>
       {pending ? "Creating..." : "Create Organization"}
     </Button>
   );
@@ -31,10 +27,10 @@ export function CreateOrgForm() {
   return (
     <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
       <div className="flex flex-1 flex-col gap-2">
-        <label htmlFor="org-name" className="text-sm font-medium text-gray-900">
+        <label htmlFor="org-name" className="text-sm font-medium text-foreground">
           Organization name
         </label>
-        <Input id="org-name" name="name" placeholder="Downtown Sports Club" required className="bg-white" />
+        <Input id="org-name" name="name" placeholder="Downtown Sports Club" required />
       </div>
       <SubmitButton />
       {state.status === "error" && (

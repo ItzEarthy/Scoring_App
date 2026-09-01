@@ -33,14 +33,14 @@ function MatchModeEntryPoint({
   if (matchMode === "admin") {
     if (isAdmin) {
       return (
-        <Button render={<Link href={`/orgs/${organizationId}/new-match`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
+        <Button render={<Link href={`/orgs/${organizationId}/new-match`} />} className="gap-2">
           <Swords className="h-4 w-4" />
           Schedule Match
         </Button>
       );
     }
     return (
-      <p className="max-w-xs text-right text-sm text-gray-900/70">
+      <p className="max-w-xs text-right text-sm text-muted-foreground">
         Matches here are scheduled directly by an organization admin.
       </p>
     );
@@ -48,14 +48,14 @@ function MatchModeEntryPoint({
 
   if (matchMode === "pool" || matchMode === "free") {
     return (
-      <Badge variant="outline" className="text-gray-500">
+      <Badge variant="outline" className="text-muted-foreground">
         {matchMode === "pool" ? "Pool" : "Free-for-all"} matchmaking is not available yet
       </Badge>
     );
   }
 
   return (
-    <Button render={<Link href={`/orgs/${organizationId}/queue`} />} className="gap-2 bg-brand-primary text-white hover:opacity-90">
+    <Button render={<Link href={`/orgs/${organizationId}/queue`} />} className="gap-2">
       <Swords className="h-4 w-4" />
       Matchmaking Queue
     </Button>
@@ -121,11 +121,11 @@ export default async function OrgPage({
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight text-foreground uppercase sm:text-3xl">
             <Users className="h-6 w-6 text-brand-primary" />
             {organization.name}
           </h1>
-          <p className="mt-1 text-gray-900/70">
+          <p className="mt-1 text-muted-foreground">
             {organization.organizationUsers.length} member
             {organization.organizationUsers.length === 1 ? "" : "s"}
           </p>
@@ -136,9 +136,7 @@ export default async function OrgPage({
         ) : (
           <form action={joinOrganizationAction}>
             <input type="hidden" name="organizationId" value={organization.id} />
-            <Button type="submit" className="bg-brand-primary text-white hover:opacity-90">
-              Join Organization
-            </Button>
+            <Button type="submit">Join Organization</Button>
           </form>
         )}
       </div>
@@ -147,15 +145,15 @@ export default async function OrgPage({
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Trophy className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Leaderboards</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Leaderboards</h2>
         </div>
 
         {sportGroups.size === 0 ? (
-          <p className="text-sm text-gray-900/60">No ratings recorded yet for this organization.</p>
+          <p className="text-sm text-muted-foreground">No ratings recorded yet for this organization.</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {[...sportGroups.values()].map((group) => (
-              <Card key={group.sportName} className="rounded-xl border-gray-200 bg-white">
+              <Card key={group.sportName}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{group.sportName}</CardTitle>
                 </CardHeader>
@@ -171,11 +169,13 @@ export default async function OrgPage({
                     <TableBody>
                       {group.rows.map((r, i) => (
                         <TableRow key={r.id}>
-                          <TableCell className="text-gray-900/50">{i + 1}</TableCell>
-                          <TableCell className="font-medium text-gray-900">
+                          <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                          <TableCell className="font-medium text-foreground">
                             {r.user.name ?? r.user.email}
                           </TableCell>
-                          <TableCell className="text-right">{Math.round(r.mu)}</TableCell>
+                          <TableCell className="scoreboard text-right text-lg text-brand-primary">
+                            {Math.round(r.mu)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -187,27 +187,27 @@ export default async function OrgPage({
         )}
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       {/* Recent matches */}
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Swords className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Recent Matches</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Recent Matches</h2>
         </div>
 
         {organization.matches.length === 0 ? (
-          <p className="text-sm text-gray-900/60">No matches have been played yet.</p>
+          <p className="text-sm text-muted-foreground">No matches have been played yet.</p>
         ) : (
           <div className="flex flex-col gap-3">
             {organization.matches.map((m) => (
               <Link
                 key={m.id}
                 href={`/matches/${m.id}`}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 transition hover:border-brand-primary"
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition hover:border-brand-primary"
               >
-                <span className="font-medium text-gray-900">{m.sport.name}</span>
-                <Badge variant="outline" className="text-gray-500">
+                <span className="font-medium text-foreground">{m.sport.name}</span>
+                <Badge variant="outline" className="text-muted-foreground">
                   {m.status.replace(/_/g, " ")}
                 </Badge>
               </Link>
@@ -216,25 +216,25 @@ export default async function OrgPage({
         )}
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       {/* Members */}
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Users className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Members</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Members</h2>
         </div>
         <div className="flex flex-col gap-2">
           {organization.organizationUsers.map((m) => (
             <div
               key={m.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3"
+              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
             >
               <Avatar size="sm">
                 <AvatarImage src={m.user.avatarBase64 ?? undefined} alt={m.user.name ?? m.user.email} />
                 <AvatarFallback>{(m.user.name ?? m.user.email).slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span className="flex-1 font-medium text-gray-900">{m.user.name ?? m.user.email}</span>
+              <span className="flex-1 font-medium text-foreground">{m.user.name ?? m.user.email}</span>
               {isAdmin && m.role !== Role.OWNER && m.userId !== userId ? (
                 <MemberRowControls
                   organizationId={organization.id}
@@ -243,7 +243,7 @@ export default async function OrgPage({
                   currentRole={m.role === Role.ADMIN ? "ADMIN" : "MEMBER"}
                 />
               ) : (
-                <Badge className="bg-brand-secondary text-gray-900 hover:bg-brand-secondary">{m.role}</Badge>
+                <Badge className="bg-brand-secondary text-foreground hover:bg-brand-secondary">{m.role}</Badge>
               )}
             </div>
           ))}
@@ -253,13 +253,13 @@ export default async function OrgPage({
       {/* Admin settings */}
       {isAdmin && (
         <>
-          <Separator className="bg-gray-200" />
+          <Separator />
           <section>
             <div className="mb-4 flex items-center gap-2">
               <Settings className="h-5 w-5 text-brand-primary" />
-              <h2 className="text-lg font-semibold text-gray-900">Organization Settings</h2>
+              <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Organization Settings</h2>
             </div>
-            <Card className="rounded-xl border-gray-200 bg-brand-surface">
+            <Card className="bg-brand-surface">
               <CardContent className="py-6">
                 <OrgSettingsForm
                   organizationId={organization.id}

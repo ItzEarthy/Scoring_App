@@ -15,7 +15,7 @@ const initialState: AdminCreateMatchState = { status: "idle" };
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="bg-brand-primary text-white hover:opacity-90">
+    <Button type="submit" disabled={pending}>
       {pending ? "Scheduling..." : "Schedule Match"}
     </Button>
   );
@@ -33,20 +33,20 @@ export function NewMatchForm({
   const [state, formAction] = useActionState(createAdminMatchAction, initialState);
 
   return (
-    <Card className="rounded-xl border-gray-200 bg-white">
+    <Card>
       <CardContent className="py-6">
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="organizationId" value={organizationId} />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
-              <label htmlFor="sportId" className="text-sm font-medium text-gray-900">
+              <label htmlFor="sportId" className="text-sm font-medium text-foreground">
                 Sport
               </label>
               <select
                 id="sportId"
                 name="sportId"
-                className="h-9 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+                className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
                 required
               >
                 {sports.length === 0 && <option value="">No sports available</option>}
@@ -59,13 +59,13 @@ export function NewMatchForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="playerAId" className="text-sm font-medium text-gray-900">
+              <label htmlFor="playerAId" className="text-sm font-medium text-foreground">
                 Player A
               </label>
               <select
                 id="playerAId"
                 name="playerAId"
-                className="h-9 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+                className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
                 required
               >
                 {members.map((m) => (
@@ -77,13 +77,13 @@ export function NewMatchForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="playerBId" className="text-sm font-medium text-gray-900">
+              <label htmlFor="playerBId" className="text-sm font-medium text-foreground">
                 Player B
               </label>
               <select
                 id="playerBId"
                 name="playerBId"
-                className="h-9 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+                className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
                 required
               >
                 {members.map((m) => (

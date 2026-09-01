@@ -15,7 +15,7 @@ const initialState: UpdateOrgSettingsState = { status: "idle" };
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="bg-brand-primary text-white hover:opacity-90">
+    <Button type="submit" disabled={pending}>
       {pending ? "Saving..." : "Save Settings"}
     </Button>
   );
@@ -40,14 +40,14 @@ export function OrgSettingsForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-2">
-          <label htmlFor="match_mode" className="text-sm font-medium text-gray-900">
+          <label htmlFor="match_mode" className="text-sm font-medium text-foreground">
             Match mode
           </label>
           <select
             id="match_mode"
             name="match_mode"
             defaultValue={matchMode}
-            className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+            className="h-8 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
           >
             <option value="queue">Queue</option>
             <option value="admin">Admin-assigned</option>
@@ -57,14 +57,14 @@ export function OrgSettingsForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="approval_mode" className="text-sm font-medium text-gray-900">
+          <label htmlFor="approval_mode" className="text-sm font-medium text-foreground">
             Approval mode
           </label>
           <select
             id="approval_mode"
             name="approval_mode"
             defaultValue={approvalMode}
-            className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+            className="h-8 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
           >
             <option value="player_mutual">Player mutual confirmation</option>
             <option value="admin_forced">Admin forced</option>
@@ -72,7 +72,7 @@ export function OrgSettingsForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="auto_approve_hours" className="text-sm font-medium text-gray-900">
+          <label htmlFor="auto_approve_hours" className="text-sm font-medium text-foreground">
             Auto-approve after (hours)
           </label>
           <Input
@@ -82,7 +82,6 @@ export function OrgSettingsForm({
             min={1}
             max={720}
             defaultValue={autoApproveHours}
-            className="bg-white"
           />
         </div>
       </div>

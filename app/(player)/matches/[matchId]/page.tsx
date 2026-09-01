@@ -79,7 +79,7 @@ export default async function MatchPage({
       : match.status === MatchStatus.DISPUTED
       ? "bg-rose-500 hover:bg-rose-500"
       : match.status === MatchStatus.CANCELED
-      ? "bg-gray-400 hover:bg-gray-400"
+      ? "bg-muted-foreground hover:bg-muted-foreground"
       : "bg-amber-500 hover:bg-amber-500";
 
   return (
@@ -92,13 +92,13 @@ export default async function MatchPage({
           {match.organization.name}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="flex items-center gap-2 font-heading text-2xl font-bold tracking-tight text-foreground uppercase sm:text-3xl">
             <Swords className="h-6 w-6 text-brand-primary" />
             {match.sport.name} Match
           </h1>
           <Badge className={statusBadgeClass}>{STATUS_LABEL[match.status]}</Badge>
         </div>
-        <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-900/60">
+        <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4" />
             {new Date(match.createdAt).toLocaleDateString(undefined, {
@@ -123,7 +123,7 @@ export default async function MatchPage({
       {/* Participants */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {teams.map((team) => (
-          <Card key={team.teamIdentifier} className="rounded-xl border-gray-200 bg-white">
+          <Card key={team.teamIdentifier}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{team.label}</CardTitle>
             </CardHeader>
@@ -132,11 +132,11 @@ export default async function MatchPage({
                 <div key={player.participantId} className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
-                    <AvatarFallback className="bg-brand-secondary text-gray-900">
+                    <AvatarFallback className="bg-brand-secondary text-foreground">
                       {player.name.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="flex-1 font-medium text-gray-900">{player.name}</span>
+                  <span className="flex-1 font-medium text-foreground">{player.name}</span>
                   {player.outcome && (
                     <Badge
                       className={
@@ -151,7 +151,7 @@ export default async function MatchPage({
                     </Badge>
                   )}
                   {player.score !== null && (
-                    <span className="text-sm font-semibold text-gray-900">{player.score}</span>
+                    <span className="scoreboard text-xl text-brand-primary">{player.score}</span>
                   )}
                 </div>
               ))}
@@ -160,7 +160,7 @@ export default async function MatchPage({
         ))}
       </div>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       {/* Score reporting */}
       {canReportScore ? (
@@ -179,14 +179,14 @@ export default async function MatchPage({
           }))}
         />
       ) : (
-        <Card className="rounded-xl border-gray-200 bg-brand-surface">
+        <Card className="bg-brand-surface">
           <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
-            <p className="font-medium text-gray-900">
+            <p className="font-medium text-foreground">
               {isParticipant
                 ? "This match is closed for score reporting."
                 : "You're viewing this match as a spectator."}
             </p>
-            <p className="max-w-sm text-sm text-gray-900/70">
+            <p className="max-w-sm text-sm text-muted-foreground">
               {isParticipant
                 ? `Status: ${STATUS_LABEL[match.status]}.`
                 : "Only participants can report a score."}

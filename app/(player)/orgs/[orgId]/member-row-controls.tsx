@@ -56,7 +56,7 @@ export function MemberRowControls({
             name="newRole"
             defaultValue={currentRole}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900"
+            className="h-8 rounded-lg border border-border bg-card px-2.5 text-sm text-foreground"
           >
             <option value="MEMBER">Member</option>
             <option value="ADMIN">Admin</option>

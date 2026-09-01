@@ -28,7 +28,7 @@ type WaitingPlayer = {
 function JoinButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="bg-brand-primary text-white hover:opacity-90">
+    <Button type="submit" disabled={pending}>
       {pending ? "Joining..." : "Join Queue"}
     </Button>
   );
@@ -69,10 +69,10 @@ export function QueuePanel({
   }, [router]);
 
   return (
-    <Card className="rounded-xl border-gray-200 bg-white">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">{sport.name}</CardTitle>
-        <Badge variant="outline" className="gap-1.5 text-gray-500">
+        <Badge variant="outline" className="gap-1.5 text-muted-foreground">
           <Users className="h-3.5 w-3.5" />
           {waiting.length} waiting
         </Badge>
@@ -88,7 +88,7 @@ export function QueuePanel({
         )}
 
         {waiting.length === 0 ? (
-          <p className="text-sm text-gray-900/60">No one is waiting.</p>
+          <p className="text-sm text-muted-foreground">No one is waiting.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {waiting.map((player) => (
@@ -97,13 +97,13 @@ export function QueuePanel({
                   <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
                   <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span className="flex-1 text-sm font-medium text-gray-900">
+                <span className="flex-1 text-sm font-medium text-foreground">
                   {player.name}
                   {player.userId === userId && (
                     <span className="ml-1.5 text-xs font-normal text-brand-primary">(you)</span>
                   )}
                 </span>
-                <span className="text-xs text-gray-900/50">waiting {timeAgo(player.joinedAt)}</span>
+                <span className="text-xs text-muted-foreground">waiting {timeAgo(player.joinedAt)}</span>
               </div>
             ))}
           </div>

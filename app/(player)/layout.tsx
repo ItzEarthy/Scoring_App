@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Trophy, LayoutDashboard, Users, ShieldCheck } from "lucide-react";
 import { SignOutMenuItem } from "./sign-out-item";
+import { MobileTabBar } from "./mobile-tab-bar";
 
 export default async function PlayerLayout({
   children,
@@ -38,26 +39,40 @@ export default async function PlayerLayout({
 
   return (
     <div className="min-h-screen bg-brand-base">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-brand-base/95 backdrop-blur">
+      <header className="sticky top-0 z-40 bg-brand-primary">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 text-brand-primary">
-            <Trophy className="h-5 w-5" />
-            <span className="text-lg font-bold tracking-tight">MatchPlay</span>
+          <Link href="/dashboard" className="flex items-center gap-2 text-brand-base">
+            <Trophy className="h-6 w-6 text-brand-secondary" />
+            <span className="font-heading text-xl font-bold tracking-wider uppercase">
+              MatchPlay
+            </span>
           </Link>
 
           {/* Primary nav */}
           <nav className="hidden items-center gap-1 sm:flex">
-            <Button render={<Link href="/dashboard" />} variant="ghost" className="gap-2 text-gray-900 hover:bg-brand-secondary/20">
+            <Button
+              render={<Link href="/dashboard" />}
+              variant="ghost"
+              className="gap-2 text-brand-base hover:bg-brand-base/10 hover:text-brand-secondary"
+            >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Button>
-            <Button render={<Link href="/orgs" />} variant="ghost" className="gap-2 text-gray-900 hover:bg-brand-secondary/20">
+            <Button
+              render={<Link href="/orgs" />}
+              variant="ghost"
+              className="gap-2 text-brand-base hover:bg-brand-base/10 hover:text-brand-secondary"
+            >
               <Users className="h-4 w-4" />
               Organizations
             </Button>
             {siteAdminUserId && (
-              <Button render={<Link href="/admin" />} variant="ghost" className="gap-2 text-gray-900 hover:bg-brand-secondary/20">
+              <Button
+                render={<Link href="/admin" />}
+                variant="ghost"
+                className="gap-2 text-brand-base hover:bg-brand-base/10 hover:text-brand-secondary"
+              >
                 <ShieldCheck className="h-4 w-4" />
                 Site Admin
               </Button>
@@ -66,10 +81,17 @@ export default async function PlayerLayout({
 
           {/* Account menu */}
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" />}>
-              <Avatar className="h-9 w-9">
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full p-0 hover:bg-brand-base/10"
+                />
+              }
+            >
+              <Avatar className="h-9 w-9 ring-2 ring-brand-secondary">
                 <AvatarImage src={user.image ?? undefined} alt={user.name ?? "User"} />
-                <AvatarFallback className="bg-brand-secondary text-gray-900">
+                <AvatarFallback className="bg-brand-secondary text-brand-primary-dark">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -78,7 +100,7 @@ export default async function PlayerLayout({
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="flex flex-col">
                   <span className="font-medium">{user.name ?? "Player"}</span>
-                  <span className="text-xs font-normal text-gray-500">{user.email}</span>
+                  <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
@@ -97,9 +119,12 @@ export default async function PlayerLayout({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <div className="stripe-bar h-1.5 w-full" />
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 pb-24 sm:px-6 sm:pb-8">{children}</main>
+
+      <MobileTabBar showAdmin={Boolean(siteAdminUserId)} />
     </div>
   );
 }

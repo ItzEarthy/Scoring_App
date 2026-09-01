@@ -28,19 +28,19 @@ export default async function RegisterPage({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-base px-4">
-      <Card className="w-full max-w-sm rounded-xl border-gray-200 bg-brand-surface">
+      <Card className="w-full max-w-sm rounded-xl border-border bg-brand-surface">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-brand-primary">
             Create your account
           </CardTitle>
-          <CardDescription className="text-gray-900">
+          <CardDescription className="text-foreground">
             Join MatchPlay to track ratings and report matches.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={registerUser} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <label htmlFor="name" className="text-sm font-medium text-gray-900">
+              <label htmlFor="name" className="text-sm font-medium text-foreground">
                 Name
               </label>
               <Input
@@ -53,7 +53,7 @@ export default async function RegisterPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-900">
+              <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
               </label>
               <Input
@@ -66,7 +66,7 @@ export default async function RegisterPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label htmlFor="password" className="text-sm font-medium text-gray-900">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
                 Password
               </label>
               <Input
@@ -80,7 +80,7 @@ export default async function RegisterPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium text-gray-900">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
                 Confirm password
               </label>
               <Input
@@ -98,12 +98,12 @@ export default async function RegisterPage({
             )}
             <Button
               type="submit"
-              className="mt-2 rounded-lg bg-brand-primary text-white hover:bg-brand-secondary"
+              className="mt-2"
             >
               Create account
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-gray-900/70">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href="/login" className="font-medium text-brand-primary hover:underline">
               Log in

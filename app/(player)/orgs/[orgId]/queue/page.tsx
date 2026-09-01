@@ -63,11 +63,11 @@ export default async function QueuePage({
         >
           {organization.name}
         </Link>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+        <h1 className="mt-1 flex items-center gap-2 font-heading text-2xl font-bold tracking-tight text-foreground uppercase sm:text-3xl">
           <Swords className="h-6 w-6 text-brand-primary" />
           Matchmaking Queue
         </h1>
-        <p className="mt-1 text-gray-900/70">
+        <p className="mt-1 text-muted-foreground">
           Join the queue for a sport and you&apos;ll be matched automatically once another
           player is waiting.
         </p>

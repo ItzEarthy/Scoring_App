@@ -31,7 +31,7 @@ type Team = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="bg-brand-primary text-white hover:opacity-90">
+    <Button type="submit" disabled={pending}>
       {pending ? "Reporting..." : "Report Score"}
     </Button>
   );
@@ -53,9 +53,9 @@ export function ReportScoreForm({
   const [winner, setWinner] = useState<string | null>(null);
 
   return (
-    <Card className="rounded-xl border-gray-200 bg-brand-surface">
+    <Card className="bg-brand-surface">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900">Report Score</CardTitle>
+        <CardTitle className="text-lg">Report Score</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="flex flex-col gap-6">
@@ -71,7 +71,7 @@ export function ReportScoreForm({
                   key={team.teamIdentifier}
                   className={cn(
                     "flex flex-col gap-4 rounded-lg border p-4 transition",
-                    isWinner ? "border-emerald-500 bg-emerald-50" : "border-gray-200 bg-white"
+                    isWinner ? "border-emerald-500 bg-emerald-50" : "border-border bg-card"
                   )}
                 >
                   <div className="flex flex-col gap-3">
@@ -81,7 +81,7 @@ export function ReportScoreForm({
                           <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
                           <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <span className="flex-1 text-sm font-medium text-gray-900">
+                        <span className="flex-1 text-sm font-medium text-foreground">
                           {player.name}
                         </span>
                         <Input
@@ -89,7 +89,7 @@ export function ReportScoreForm({
                           name={`score:${player.participantId}`}
                           placeholder="Score"
                           min={0}
-                          className="w-20 bg-white"
+                          className="w-20 bg-card"
                         />
                       </div>
                     ))}

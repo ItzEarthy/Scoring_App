@@ -63,10 +63,10 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-bold text-brand-primary sm:text-3xl">
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-primary uppercase sm:text-4xl">
           Welcome back, {session.user.name?.split(" ")[0] ?? "Champion"}
         </h1>
-        <p className="mt-1 text-gray-900/70">
+        <p className="mt-1 text-muted-foreground">
           Here&apos;s how you&apos;re stacking up across every sport and club.
         </p>
       </div>
@@ -75,20 +75,22 @@ export default async function DashboardPage() {
       <section>
         <div className="mb-4 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Your Ratings</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">
+            Your Ratings
+          </h2>
         </div>
 
         {ratings.length === 0 ? (
-          <Card className="rounded-xl border-gray-200 bg-brand-surface">
+          <Card className="bg-brand-surface">
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <Trophy className="h-8 w-8 text-brand-primary" />
-              <p className="font-medium text-gray-900">No ratings on the board yet.</p>
-              <p className="max-w-sm text-sm text-gray-900/70">
+              <p className="font-medium text-foreground">No ratings on the board yet.</p>
+              <p className="max-w-sm text-sm text-muted-foreground">
                 Join an organization and play your first match to start climbing the leaderboard.
               </p>
               <Link
                 href="/orgs"
-                className="mt-1 rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="mt-1 rounded-md bg-brand-primary px-4 py-2 font-heading text-sm font-semibold tracking-wide text-brand-base uppercase hover:opacity-90"
               >
                 Find an Organization
               </Link>
@@ -99,18 +101,14 @@ export default async function DashboardPage() {
             {ratings.map((rating) => {
               const conservative = Math.round(rating.mu - 3 * rating.sigma);
               return (
-                <Card key={rating.id} className="rounded-xl border-gray-200 bg-brand-surface">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center justify-between text-base">
-                      <span>{rating.sport.name}</span>
-                      <Badge className="bg-brand-secondary text-gray-900 hover:bg-brand-secondary">
-                        {conservative}
-                      </Badge>
-                    </CardTitle>
+                <Card key={rating.id} className="bg-brand-surface">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-base">{rating.sport.name}</CardTitle>
+                    <span className="scoreboard text-3xl text-brand-primary">{conservative}</span>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-900/70">{rating.organization.name}</p>
-                    <p className="mt-2 text-xs text-gray-900/50">
+                    <p className="text-sm text-muted-foreground">{rating.organization.name}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
                       μ {rating.mu.toFixed(1)} · σ {rating.sigma.toFixed(2)}
                     </p>
                   </CardContent>
@@ -121,21 +119,23 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       {/* Recent match history */}
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Swords className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Recent Matches</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">
+            Recent Matches
+          </h2>
         </div>
 
         {recentMatches.length === 0 ? (
-          <Card className="rounded-xl border-gray-200 bg-brand-surface">
+          <Card className="bg-brand-surface">
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
               <Swords className="h-8 w-8 text-brand-primary" />
-              <p className="font-medium text-gray-900">Your match history is empty.</p>
-              <p className="max-w-sm text-sm text-gray-900/70">
+              <p className="font-medium text-foreground">Your match history is empty.</p>
+              <p className="max-w-sm text-sm text-muted-foreground">
                 Queue up for a match or challenge someone in your organization to get your first result on the books.
               </p>
             </CardContent>
@@ -146,13 +146,13 @@ export default async function DashboardPage() {
               <Link
                 key={m.matchId}
                 href={`/matches/${m.matchId}`}
-                className="rounded-lg border border-gray-200 bg-white p-4 transition hover:border-brand-primary sm:flex sm:items-center sm:justify-between"
+                className="rounded-lg border border-border bg-card p-4 transition hover:border-brand-primary sm:flex sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-foreground">
                     {m.sport} · vs {m.opponents}
                   </p>
-                  <p className="text-sm text-gray-900/60">
+                  <p className="text-sm text-muted-foreground">
                     {m.organization} ·{" "}
                     {new Date(m.date).toLocaleDateString(undefined, {
                       month: "short",
@@ -175,12 +175,12 @@ export default async function DashboardPage() {
                       {m.outcome}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-gray-500">
+                    <Badge variant="outline" className="text-muted-foreground">
                       {m.status.replace(/_/g, " ")}
                     </Badge>
                   )}
                   {m.score !== null && (
-                    <span className="text-sm font-semibold text-gray-900">{m.score}</span>
+                    <span className="scoreboard text-lg text-brand-primary">{m.score}</span>
                   )}
                 </div>
               </Link>

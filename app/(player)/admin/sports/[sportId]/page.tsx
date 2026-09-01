@@ -28,14 +28,14 @@ export default async function SportDetailPage({
         <Link href="/admin/sports" className="text-sm font-medium text-brand-primary hover:underline">
           Sports Catalog
         </Link>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+        <h1 className="mt-1 flex items-center gap-2 font-heading text-2xl font-bold tracking-tight text-foreground uppercase sm:text-3xl">
           <Trophy className="h-6 w-6 text-brand-primary" />
           {sport.name}
           <Badge
             className={
               sport.isActive
-                ? "bg-brand-secondary text-gray-900 hover:bg-brand-secondary"
-                : "bg-gray-200 text-gray-600 hover:bg-gray-200"
+                ? "bg-brand-secondary text-foreground hover:bg-brand-secondary"
+                : "bg-muted text-muted-foreground hover:bg-muted"
             }
           >
             {sport.isActive ? "Active" : "Inactive"}
@@ -43,7 +43,7 @@ export default async function SportDetailPage({
         </h1>
       </div>
 
-      <Card className="rounded-xl border-gray-200 bg-brand-surface">
+      <Card className="bg-brand-surface">
         <CardContent className="py-6">
           <EditSportForm
             sportId={sport.id}
@@ -54,10 +54,10 @@ export default async function SportDetailPage({
         </CardContent>
       </Card>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       <div>
-        <p className="mb-3 text-sm text-gray-900/70">
+        <p className="mb-3 text-sm text-muted-foreground">
           {sport.isActive
             ? "Deactivating hides this sport from matchmaking queues. Existing ratings and match history are kept."
             : "Reactivating makes this sport queueable again."}

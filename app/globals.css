@@ -10,10 +10,13 @@
   --color-brand-base: var(--brand-base);
   --color-brand-surface: var(--brand-surface);
   --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-dark: var(--brand-primary-dark);
   --color-brand-secondary: var(--brand-secondary);
-  --font-sans: var(--font-sans);
+  --color-brand-secondary-dark: var(--brand-secondary-dark);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
+  --font-display: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -53,76 +56,87 @@
 }
 
 :root {
-  --brand-base: #fff8cf;
-  --brand-surface: #fbe6c2;
-  --brand-primary: #2a7c13;
-  --brand-secondary: #76c457;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Varsity green + mustard gold on parchment cream -- retro collegiate */
+  --brand-base: #f6efd8;
+  --brand-surface: #eee0b5;
+  --brand-primary: #1f4b33;
+  --brand-primary-dark: #12281c;
+  --brand-secondary: #d6a531;
+  --brand-secondary-dark: #b0841f;
+
+  --background: var(--brand-base);
+  --foreground: #241f14;
+  --card: #fffcf2;
+  --card-foreground: #241f14;
+  --popover: #fffcf2;
+  --popover-foreground: #241f14;
+  --primary: var(--brand-primary);
+  --primary-foreground: #f6efd8;
+  --secondary: var(--brand-secondary);
+  --secondary-foreground: #241f14;
+  --muted: #e9decb;
+  --muted-foreground: #6c6247;
+  --accent: #e2d29d;
+  --accent-foreground: var(--brand-primary-dark);
+  --destructive: #ad3a1e;
+  --border: #ddcda1;
+  --input: #ddcda1;
+  --ring: var(--brand-primary);
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-secondary);
+  --chart-3: #6c6247;
+  --chart-4: #ad3a1e;
+  --chart-5: #12281c;
+  --radius: 0.45rem;
+  --sidebar: #fffcf2;
+  --sidebar-foreground: #241f14;
+  --sidebar-primary: var(--brand-primary);
+  --sidebar-primary-foreground: #f6efd8;
+  --sidebar-accent: #e2d29d;
+  --sidebar-accent-foreground: var(--brand-primary-dark);
+  --sidebar-border: #ddcda1;
+  --sidebar-ring: var(--brand-primary);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --brand-base: #0f1f17;
+  --brand-surface: #16281f;
+  --brand-primary: #d6a531;
+  --brand-primary-dark: #f2c862;
+  --brand-secondary: #24402f;
+  --brand-secondary-dark: #2f5240;
+
+  --background: var(--brand-base);
+  --foreground: #f2ecd6;
+  --card: #16281f;
+  --card-foreground: #f2ecd6;
+  --popover: #16281f;
+  --popover-foreground: #f2ecd6;
+  --primary: #d6a531;
+  --primary-foreground: #12281c;
+  --secondary: #24402f;
+  --secondary-foreground: #f2ecd6;
+  --muted: #1c3226;
+  --muted-foreground: #a7b6ab;
+  --accent: #24402f;
+  --accent-foreground: #d6a531;
+  --destructive: #e0764f;
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --ring: #d6a531;
+  --chart-1: #d6a531;
+  --chart-2: #6fae7e;
+  --chart-3: #a7b6ab;
+  --chart-4: #e0764f;
+  --chart-5: #f2ecd6;
+  --sidebar: #16281f;
+  --sidebar-foreground: #f2ecd6;
+  --sidebar-primary: #d6a531;
+  --sidebar-primary-foreground: #12281c;
+  --sidebar-accent: #24402f;
+  --sidebar-accent-foreground: #f2ecd6;
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: #d6a531;
 }
 
 @layer base {
@@ -134,5 +148,24 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  /* Varsity ribbon: a tri-color stripe bar used as a section/header accent */
+  .stripe-bar {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--brand-secondary) 0px,
+      var(--brand-secondary) 14px,
+      var(--brand-primary) 14px,
+      var(--brand-primary) 28px
+    );
+  }
+
+  .scoreboard {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
   }
 }

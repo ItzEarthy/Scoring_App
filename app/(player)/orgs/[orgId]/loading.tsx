@@ -17,11 +17,11 @@ export default function OrgPageLoading() {
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Trophy className="h-5 w-5 text-brand-primary/40" />
-          <h2 className="text-lg font-semibold text-gray-900/40">Leaderboards</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-muted-foreground/60 uppercase">Leaderboards</h2>
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {[0, 1].map((i) => (
-            <Card key={i} className="rounded-xl border-gray-200 bg-white">
+            <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-5 w-28" />
               </CardHeader>
@@ -38,12 +38,12 @@ export default function OrgPageLoading() {
         </div>
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Swords className="h-5 w-5 text-brand-primary/40" />
-          <h2 className="text-lg font-semibold text-gray-900/40">Recent Matches</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-muted-foreground/60 uppercase">Recent Matches</h2>
         </div>
         <div className="flex flex-col gap-3">
           {[0, 1, 2].map((i) => (
@@ -52,12 +52,12 @@ export default function OrgPageLoading() {
         </div>
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Users className="h-5 w-5 text-brand-primary/40" />
-          <h2 className="text-lg font-semibold text-gray-900/40">Members</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-muted-foreground/60 uppercase">Members</h2>
         </div>
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (

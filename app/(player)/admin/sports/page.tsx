@@ -20,11 +20,11 @@ export default async function SportsCatalogPage() {
         <Link href="/admin" className="text-sm font-medium text-brand-primary hover:underline">
           Site Admin
         </Link>
-        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+        <h1 className="mt-1 flex items-center gap-2 font-heading text-2xl font-bold tracking-tight text-foreground uppercase sm:text-3xl">
           <Trophy className="h-6 w-6 text-brand-primary" />
           Sports Catalog
         </h1>
-        <p className="mt-1 text-gray-900/70">
+        <p className="mt-1 text-muted-foreground">
           Sports offered platform-wide. Deactivating a sport hides it from matchmaking queues
           without deleting its rating history.
         </p>
@@ -32,8 +32,8 @@ export default async function SportsCatalogPage() {
 
       <section>
         {sports.length === 0 ? (
-          <Card className="rounded-xl border-gray-200 bg-brand-surface">
-            <CardContent className="py-8 text-center text-sm text-gray-900/70">
+          <Card className="bg-brand-surface">
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
               No sports yet -- create one below.
             </CardContent>
           </Card>
@@ -41,15 +41,15 @@ export default async function SportsCatalogPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sports.map((sport) => (
               <Link key={sport.id} href={`/admin/sports/${sport.id}`}>
-                <Card className="h-full rounded-xl border-gray-200 bg-white transition hover:border-brand-primary">
+                <Card className="h-full transition hover:border-brand-primary">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center justify-between text-base">
                       <span>{sport.name}</span>
                       <Badge
                         className={
                           sport.isActive
-                            ? "bg-brand-secondary text-gray-900 hover:bg-brand-secondary"
-                            : "bg-gray-200 text-gray-600 hover:bg-gray-200"
+                            ? "bg-brand-secondary text-foreground hover:bg-brand-secondary"
+                            : "bg-muted text-muted-foreground hover:bg-muted"
                         }
                       >
                         {sport.isActive ? "Active" : "Inactive"}
@@ -57,7 +57,7 @@ export default async function SportsCatalogPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-900/60">{sport.ratingAlgorithm}</p>
+                    <p className="text-sm text-muted-foreground">{sport.ratingAlgorithm}</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -66,14 +66,14 @@ export default async function SportsCatalogPage() {
         )}
       </section>
 
-      <Separator className="bg-gray-200" />
+      <Separator />
 
       <section>
         <div className="mb-4 flex items-center gap-2">
           <Plus className="h-5 w-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-gray-900">Create a Sport</h2>
+          <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Create a Sport</h2>
         </div>
-        <Card className="rounded-xl border-gray-200 bg-brand-surface">
+        <Card className="bg-brand-surface">
           <CardContent className="py-6">
             <CreateSportForm />
           </CardContent>
