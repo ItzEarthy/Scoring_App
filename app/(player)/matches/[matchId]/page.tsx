@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Swords, Calendar, Clock } from "lucide-react";
+import { Swords, Calendar, Clock, MapPin } from "lucide-react";
 import { MatchStatus } from "@/app/generated/prisma/enums";
 import { ReportScoreForm } from "./report-score-form";
+import { LiveScoreboard } from "./live-scoreboard";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
+import { mintJoinToken } from "@/lib/realtime/token";
 
 const TERMINAL_STATUSES: MatchStatus[] = [
   MatchStatus.COMPLETED,
@@ -43,6 +45,7 @@ export default async function MatchPage({
     where: { id: matchId },
     include: {
       sport: { select: { name: true } },
+      court: { select: { name: true } },
       organization: { select: { id: true, name: true, platformConfig: true } },
       participants: {
         include: {
@@ -107,6 +110,12 @@ export default async function MatchPage({
               year: "numeric",
             })}
           </span>
+          {match.court && (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4" />
+              {match.court.name}
+            </span>
+          )}
           {match.approvalDeadline && match.status === MatchStatus.PENDING_CONFIRMATION && (
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
@@ -121,44 +130,66 @@ export default async function MatchPage({
       </div>
 
       {/* Participants */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {teams.map((team) => (
-          <Card key={team.teamIdentifier}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{team.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {team.players.map((player) => (
-                <div key={player.participantId} className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
-                    <AvatarFallback className="bg-brand-secondary text-foreground">
-                      {player.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="flex-1 font-medium text-foreground">{player.name}</span>
-                  {player.outcome && (
-                    <Badge
-                      className={
-                        player.outcome === "WIN"
-                          ? "bg-emerald-500 hover:bg-emerald-500"
-                          : player.outcome === "LOSS"
-                          ? "bg-rose-500 hover:bg-rose-500"
-                          : "bg-amber-500 hover:bg-amber-500"
-                      }
-                    >
-                      {player.outcome}
-                    </Badge>
-                  )}
-                  {player.score !== null && (
-                    <span className="scoreboard text-xl text-brand-primary">{player.score}</span>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {TERMINAL_STATUSES.includes(match.status) ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {teams.map((team) => (
+            <Card key={team.teamIdentifier}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{team.label}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {team.players.map((player) => (
+                  <div key={player.participantId} className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
+                      <AvatarFallback className="bg-brand-secondary text-foreground">
+                        {player.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 font-medium text-foreground">{player.name}</span>
+                    {player.outcome && (
+                      <Badge
+                        className={
+                          player.outcome === "WIN"
+                            ? "bg-emerald-500 hover:bg-emerald-500"
+                            : player.outcome === "LOSS"
+                            ? "bg-rose-500 hover:bg-rose-500"
+                            : "bg-amber-500 hover:bg-amber-500"
+                        }
+                      >
+                        {player.outcome}
+                      </Badge>
+                    )}
+                    {player.score !== null && (
+                      <span className="scoreboard text-xl text-brand-primary">{player.score}</span>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <LiveScoreboard
+          matchId={match.id}
+          joinToken={mintJoinToken(match.id, userId)}
+          currentUserId={userId}
+          teams={teams.map((t) => ({
+            teamIdentifier: t.teamIdentifier,
+            label: t.label,
+            players: t.players.map((p) => ({
+              participantId: p.participantId,
+              userId: p.userId,
+              name: p.name,
+              avatarBase64: p.avatarBase64,
+            })),
+          }))}
+          initialScores={Object.fromEntries(
+            teams.flatMap((t) => t.players.map((p) => [p.participantId, p.score ?? 0]))
+          )}
+          canControl={canReportScore}
+        />
+      )}
 
       <Separator />
 
@@ -175,6 +206,7 @@ export default async function MatchPage({
               userId: p.userId,
               name: p.name,
               avatarBase64: p.avatarBase64,
+              score: p.score,
             })),
           }))}
         />

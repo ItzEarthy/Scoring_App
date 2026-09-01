@@ -20,6 +20,7 @@ type TeamPlayer = {
   userId: string;
   name: string;
   avatarBase64: string | null;
+  score?: number | null;
 };
 
 type Team = {
@@ -88,6 +89,7 @@ export function ReportScoreForm({
                           type="number"
                           name={`score:${player.participantId}`}
                           placeholder="Score"
+                          defaultValue={player.score ?? undefined}
                           min={0}
                           className="w-20 bg-card"
                         />

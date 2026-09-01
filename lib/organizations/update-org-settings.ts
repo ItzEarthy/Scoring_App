@@ -13,6 +13,14 @@ export type UpdateOrgSettingsState = {
 const MATCH_MODES = new Set(["queue", "admin", "pool", "free"]);
 const APPROVAL_MODES = new Set(["admin_forced", "player_mutual"]);
 
+// Empty input means "disabled" (null); a non-numeric or negative value is a bad request.
+function parseOptionalNonNegativeNumber(raw: FormDataEntryValue | null): number | null | "invalid" {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return "invalid";
+  return value === 0 ? null : value;
+}
+
 export async function updateOrgSettingsAction(
   _prevState: UpdateOrgSettingsState,
   formData: FormData
@@ -39,6 +47,8 @@ export async function updateOrgSettingsAction(
   const matchMode = formData.get("match_mode");
   const approvalMode = formData.get("approval_mode");
   const autoApproveHoursRaw = formData.get("auto_approve_hours");
+  const skillGapThresholdRaw = formData.get("skill_gap_threshold");
+  const queueTimeoutMinutesRaw = formData.get("queue_timeout_minutes");
 
   if (typeof matchMode !== "string" || !MATCH_MODES.has(matchMode)) {
     return { status: "error", message: "Invalid match mode." };
@@ -51,6 +61,16 @@ export async function updateOrgSettingsAction(
     return { status: "error", message: "Auto-approve hours must be between 1 and 720." };
   }
 
+  // Both are optional org-level matchmaking tuning params: empty/0 means "disabled".
+  const skillGapThreshold = parseOptionalNonNegativeNumber(skillGapThresholdRaw);
+  if (skillGapThreshold === "invalid") {
+    return { status: "error", message: "Skill gap threshold must be a positive number." };
+  }
+  const queueTimeoutMinutes = parseOptionalNonNegativeNumber(queueTimeoutMinutesRaw);
+  if (queueTimeoutMinutes === "invalid") {
+    return { status: "error", message: "Queue timeout must be a positive number of minutes." };
+  }
+
   await prisma.organization.update({
     where: { id: organizationId },
     data: {
@@ -58,6 +78,8 @@ export async function updateOrgSettingsAction(
         match_mode: matchMode,
         approval_mode: approvalMode,
         auto_approve_hours: autoApproveHours,
+        skill_gap_threshold: skillGapThreshold,
+        queue_timeout_minutes: queueTimeoutMinutes,
       },
     },
   });

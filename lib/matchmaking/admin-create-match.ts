@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@/app/generated/prisma/enums";
 import { MatchStatus } from "@/app/generated/prisma/enums";
 import { getRatingEngine } from "@/lib/matchmaking/rating-engines";
+import { pickAvailableCourt } from "@/lib/matchmaking/assign-court";
+import { CourtStatus } from "@/app/generated/prisma/enums";
 
 export type AdminCreateMatchState = {
   status: "idle" | "error";
@@ -47,15 +49,19 @@ export async function createAdminMatchAction(
     return { status: "error", message: "Only organization admins can schedule matches." };
   }
 
-  const [sport, participantMembers] = await Promise.all([
+  const [sport, orgSport, participantMembers] = await Promise.all([
     prisma.sport.findUnique({ where: { id: sportId }, select: { id: true, isActive: true, ratingAlgorithm: true } }),
+    prisma.organizationSport.findUnique({
+      where: { organizationId_sportId: { organizationId, sportId } },
+      select: { id: true },
+    }),
     prisma.organizationUser.findMany({
       where: { organizationId, userId: { in: [playerAId, playerBId] } },
       select: { userId: true },
     }),
   ]);
 
-  if (!sport || !sport.isActive) {
+  if (!sport || !sport.isActive || !orgSport) {
     return { status: "error", message: "That sport isn't available." };
   }
   if (participantMembers.length !== 2) {
@@ -75,18 +81,28 @@ export async function createAdminMatchAction(
   const a = ratingFor(playerAId);
   const b = ratingFor(playerBId);
 
-  const match = await prisma.match.create({
-    data: {
-      organizationId,
-      sportId,
-      status: MatchStatus.SCHEDULED,
-      participants: {
-        create: [
-          { userId: playerAId, teamIdentifier: "team_a", muBefore: a.mu, sigmaBefore: a.sigma },
-          { userId: playerBId, teamIdentifier: "team_b", muBefore: b.mu, sigmaBefore: b.sigma },
-        ],
+  const match = await prisma.$transaction(async (tx) => {
+    const created = await tx.match.create({
+      data: {
+        organizationId,
+        sportId,
+        status: MatchStatus.SCHEDULED,
+        participants: {
+          create: [
+            { userId: playerAId, teamIdentifier: "team_a", muBefore: a.mu, sigmaBefore: a.sigma },
+            { userId: playerBId, teamIdentifier: "team_b", muBefore: b.mu, sigmaBefore: b.sigma },
+          ],
+        },
       },
-    },
+    });
+
+    const court = await pickAvailableCourt(tx, organizationId, sportId);
+    if (court) {
+      await tx.court.update({ where: { id: court.id }, data: { status: CourtStatus.IN_USE } });
+      await tx.match.update({ where: { id: created.id }, data: { courtId: court.id } });
+    }
+
+    return created;
   });
 
   redirect(`/matches/${match.id}`);

@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Trophy, Settings, Swords } from "lucide-react";
 import { Role } from "@/app/generated/prisma/enums";
-import { OrgSettingsForm } from "./org-settings-form";
 import { MemberRowControls } from "./member-row-controls";
 import { joinOrganizationAction } from "@/lib/organizations/manage-organizations";
 import { autoApproveExpiredMatches } from "@/lib/matchmaking/auto-approve-matches";
@@ -259,16 +258,10 @@ export default async function OrgPage({
               <Settings className="h-5 w-5 text-brand-primary" />
               <h2 className="font-heading text-lg font-semibold tracking-wide text-foreground uppercase">Organization Settings</h2>
             </div>
-            <Card className="bg-brand-surface">
-              <CardContent className="py-6">
-                <OrgSettingsForm
-                  organizationId={organization.id}
-                  matchMode={config.match_mode ?? "queue"}
-                  approvalMode={config.approval_mode ?? "player_mutual"}
-                  autoApproveHours={config.auto_approve_hours ?? 24}
-                />
-              </CardContent>
-            </Card>
+            <Button render={<Link href={`/orgs/${organization.id}/settings`} />} variant="outline" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Manage Sports, Matchmaking &amp; Courts
+            </Button>
           </section>
         </>
       )}

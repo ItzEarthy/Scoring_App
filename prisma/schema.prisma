@@ -42,6 +42,18 @@ enum QueueStatus {
   CANCELED
 }
 
+enum CourtStatus {
+  AVAILABLE
+  IN_USE
+  DISABLED
+}
+
+enum MatchEventType {
+  POINT
+  UNDO
+  MATCH_STARTED
+}
+
 // ---------------------------------------------------------------------------
 // Auth.js v5 models
 // ---------------------------------------------------------------------------
@@ -119,10 +131,12 @@ model Organization {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organizationUsers OrganizationUser[]
-  matches           Match[]
-  playerRatings     PlayerRating[]
-  queueEntries      QueueEntry[]
+  organizationUsers  OrganizationUser[]
+  matches            Match[]
+  playerRatings      PlayerRating[]
+  queueEntries       QueueEntry[]
+  organizationSports OrganizationSport[]
+  courts             Court[]
 
   @@map("organizations")
 }
@@ -136,9 +150,11 @@ model Sport {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  playerRatings PlayerRating[]
-  matches       Match[]
-  queueEntries  QueueEntry[]
+  playerRatings      PlayerRating[]
+  matches            Match[]
+  queueEntries       QueueEntry[]
+  organizationSports OrganizationSport[]
+  courts             Court[]
 
   @@map("sports")
 }
@@ -160,6 +176,38 @@ model OrganizationUser {
 
   @@unique([userId, organizationId])
   @@map("organization_users")
+}
+
+model OrganizationSport {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  sportId        String   @map("sport_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sport        Sport        @relation(fields: [sportId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, sportId])
+  @@map("organization_sports")
+}
+
+model Court {
+  id             String      @id @default(cuid())
+  organizationId String      @map("organization_id")
+  sportId        String?     @map("sport_id")
+  name           String
+  status         CourtStatus @default(AVAILABLE)
+  displayOrder   Int         @default(0) @map("display_order")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sport        Sport?       @relation(fields: [sportId], references: [id], onDelete: SetNull)
+  matches      Match[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, displayOrder])
+  @@map("courts")
 }
 
 model PlayerRating {
@@ -187,6 +235,7 @@ model Match {
   id                 String      @id @default(cuid())
   organizationId     String      @map("organization_id")
   sportId            String      @map("sport_id")
+  courtId            String?     @map("court_id")
   status             MatchStatus @default(PENDING_CONFIRMATION)
   approvalDeadline   DateTime?   @map("approval_deadline")
   reportedWinnerTeam String?     @map("reported_winner_team")
@@ -196,8 +245,10 @@ model Match {
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sport        Sport              @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  court        Court?             @relation(fields: [courtId], references: [id], onDelete: SetNull)
   participants MatchParticipant[]
   queueEntries QueueEntry[]
+  events       MatchEvent[]
 
   @@map("matches")
 }
@@ -216,11 +267,32 @@ model MatchParticipant {
   muAfter     Float? @map("mu_after")
   sigmaAfter  Float? @map("sigma_after")
 
-  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match  Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events MatchEvent[]
 
   @@unique([matchId, userId])
   @@map("match_participants")
+}
+
+// ---------------------------------------------------------------------------
+// Live scoreboard event log (append-only; drives real-time score updates)
+// ---------------------------------------------------------------------------
+
+model MatchEvent {
+  id              String         @id @default(cuid())
+  matchId         String         @map("match_id")
+  participantId   String?        @map("participant_id")
+  type            MatchEventType
+  delta           Int            @default(0)
+  createdByUserId String         @map("created_by_user_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  match       Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  participant MatchParticipant? @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+  @@map("match_events")
 }
 
 // ---------------------------------------------------------------------------

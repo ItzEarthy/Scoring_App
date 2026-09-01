@@ -27,10 +27,23 @@ services:
       db:
         condition: service_healthy
 
+  realtime:
+    build:
+      context: .
+      dockerfile: realtime/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      REALTIME_SHARED_SECRET: ${REALTIME_SHARED_SECRET:?REALTIME_SHARED_SECRET must be set in .env}
+
   app:
     build:
       context: .
       target: runner
+      args:
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3001}
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -39,9 +52,13 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set in .env}
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_TRUST_HOST: "true"
+      REALTIME_INTERNAL_URL: http://realtime:3001
+      REALTIME_SHARED_SECRET: ${REALTIME_SHARED_SECRET:?REALTIME_SHARED_SECRET must be set in .env}
     depends_on:
       migrate:
         condition: service_completed_successfully
+      realtime:
+        condition: service_started
 
 volumes:
   db_data:

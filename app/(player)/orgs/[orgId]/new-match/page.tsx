@@ -40,7 +40,10 @@ export default async function NewMatchPage({
   const config = (organization.platformConfig ?? {}) as PlatformConfig;
   if ((config.match_mode ?? "queue") !== "admin") redirect(`/orgs/${orgId}`);
 
-  const sports = await prisma.sport.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+  const sports = await prisma.sport.findMany({
+    where: { isActive: true, organizationSports: { some: { organizationId: orgId } } },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="flex flex-col gap-8">

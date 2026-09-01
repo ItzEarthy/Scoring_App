@@ -31,12 +31,20 @@ export async function createOrganizationAction(
     return { status: "error", message: "Enter an organization name." };
   }
 
+  const activeSports = await prisma.sport.findMany({
+    where: { isActive: true },
+    select: { id: true },
+  });
+
   const organization = await prisma.organization.create({
     data: {
       name: name.trim(),
       platformConfig: DEFAULT_PLATFORM_CONFIG,
       organizationUsers: {
         create: { userId, role: Role.OWNER },
+      },
+      organizationSports: {
+        create: activeSports.map((sport) => ({ sportId: sport.id })),
       },
     },
   });

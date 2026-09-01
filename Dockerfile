@@ -22,6 +22,11 @@ WORKDIR /app
 # runtime by docker-compose.
 ARG DATABASE_URL="postgresql://user:password@localhost:5432/db?schema=public"
 ENV DATABASE_URL=${DATABASE_URL}
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so the
+# browser's websocket URL for the realtime relay (realtime/) must be known
+# here rather than read at container start.
+ARG NEXT_PUBLIC_WS_URL="ws://localhost:3001"
+ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

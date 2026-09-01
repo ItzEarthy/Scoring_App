@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { MatchOutcome, MatchStatus } from "@/app/generated/prisma/enums";
+import { MatchOutcome, MatchStatus, CourtStatus } from "@/app/generated/prisma/enums";
 import { getRatingEngine, type RatingEngine } from "@/lib/matchmaking/rating-engines";
 
 export type SubmitMatchScoreResult =
@@ -179,6 +179,14 @@ export async function submitMatchScore(
           finishedAt: new Date(),
         },
       });
+
+      // 4. Free up the court, if one was assigned.
+      if (match.courtId) {
+        await tx.court.update({
+          where: { id: match.courtId },
+          data: { status: CourtStatus.AVAILABLE },
+        });
+      }
     });
 
     return { success: true };

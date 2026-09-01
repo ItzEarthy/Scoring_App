@@ -36,6 +36,17 @@ export async function joinQueueAction(
     return { status: "error", message: "You must be a member of this organization to queue." };
   }
 
+  const [sport, orgSport] = await Promise.all([
+    prisma.sport.findUnique({ where: { id: sportId }, select: { isActive: true } }),
+    prisma.organizationSport.findUnique({
+      where: { organizationId_sportId: { organizationId, sportId } },
+      select: { id: true },
+    }),
+  ]);
+  if (!sport || !sport.isActive || !orgSport) {
+    return { status: "error", message: "That sport isn't available for this organization." };
+  }
+
   try {
     await prisma.queueEntry.create({
       data: { userId, organizationId, sportId, status: QueueStatus.WAITING },

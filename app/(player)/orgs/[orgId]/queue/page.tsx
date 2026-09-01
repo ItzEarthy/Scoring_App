@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { QueueStatus } from "@/app/generated/prisma/enums";
 import { QueuePanel } from "./queue-panel";
 import { Swords } from "lucide-react";
+import { expireStaleQueueEntries } from "@/lib/matchmaking/expire-stale-queue-entries";
 
 export default async function QueuePage({
   params,
@@ -31,7 +32,12 @@ export default async function QueuePage({
   const matchMode = (organization.platformConfig as { match_mode?: string } | null)?.match_mode ?? "queue";
   if (matchMode !== "queue") redirect(`/orgs/${orgId}`);
 
-  const sports = await prisma.sport.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+  await expireStaleQueueEntries(orgId);
+
+  const sports = await prisma.sport.findMany({
+    where: { isActive: true, organizationSports: { some: { organizationId: orgId } } },
+    orderBy: { name: "asc" },
+  });
 
   const waitingEntries = await prisma.queueEntry.findMany({
     where: { organizationId: orgId, status: QueueStatus.WAITING },
