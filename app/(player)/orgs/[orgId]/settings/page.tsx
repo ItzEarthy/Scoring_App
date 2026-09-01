@@ -105,8 +105,9 @@ export default async function OrgSettingsPage({
             </div>
             <InfoNote tone="warning" className="mb-4">
               <p>
-                Participants reported conflicting winners for these matches. Pick the actual winner to
-                finalize ratings, or void the match if it shouldn&apos;t count at all.
+                Participants reported conflicting winners for these matches. The winner is determined
+                automatically from the reported scores -- confirm it to finalize ratings, or void the
+                match if it shouldn&apos;t count at all.
               </p>
             </InfoNote>
             <div className="flex flex-col gap-4">
