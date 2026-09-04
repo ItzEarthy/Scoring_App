@@ -5,6 +5,7 @@ import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QueueStatus } from "@/app/generated/prisma/enums";
 import { formMatchesFromQueue } from "./form-matches";
+import { publishQueueEvent } from "@/lib/realtime/publish";
 
 export type QueueActionState = {
   status: "idle" | "error";
@@ -55,6 +56,7 @@ export async function joinQueueAction(
     return { status: "error", message: "You're already in the queue for this sport." };
   }
 
+  await publishQueueEvent(organizationId, sportId, { type: "queue_changed" });
   await formMatchesFromQueue(organizationId, sportId);
 
   revalidatePath(`/orgs/${organizationId}/queue`);
@@ -79,5 +81,6 @@ export async function leaveQueueAction(formData: FormData) {
     data: { status: QueueStatus.CANCELED },
   });
 
+  await publishQueueEvent(organizationId, sportId, { type: "queue_changed" });
   revalidatePath(`/orgs/${organizationId}/queue`);
 }

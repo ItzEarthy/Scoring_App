@@ -1,13 +1,19 @@
-// Minimal self-hosted WebSocket relay for live match scoreboards.
+// Minimal self-hosted WebSocket relay for live match scoreboards, the
+// matchmaking queue, and per-user notifications.
 //
 // This process holds no database connection and makes no authorization
 // decisions of its own beyond verifying the short-lived join token minted by
 // the Next.js app (see lib/realtime/token.ts, which uses the same HMAC
-// scheme). All score mutations happen in Next.js Server Actions, which then
-// POST the resulting event to this server's /broadcast endpoint for fan-out
-// to every socket subscribed to that match. That keeps a single source of
+// scheme). All mutations happen in Next.js Server Actions, which then POST
+// the resulting event to this server's /broadcast endpoint for fan-out to
+// every socket subscribed to that channel. That keeps a single source of
 // truth (Postgres, via Prisma) and a single place with participant/auth
 // checks, while this relay just does fast pub/sub over WebSocket.
+//
+// Rooms are keyed by `${channel}:${resourceId}`, where channel is one of:
+//   - "match": resourceId is a matchId (live scoreboard)
+//   - "user": resourceId is a userId (personal notification feed)
+//   - "queue": resourceId is `${organizationId}:${sportId}` (queue updates)
 import { createServer } from "node:http";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { WebSocketServer } from "ws";
@@ -26,7 +32,7 @@ function base64UrlDecode(input) {
 }
 
 /** Verifies a join token minted by lib/realtime/token.ts. */
-function verifyJoinToken(token, matchId) {
+function verifyJoinToken(token, channel, resourceId) {
   if (typeof token !== "string" || !token.includes(".")) return null;
   const [payloadPart, signaturePart] = token.split(".");
   if (!payloadPart || !signaturePart) return null;
@@ -49,25 +55,30 @@ function verifyJoinToken(token, matchId) {
     return null;
   }
 
-  if (payload.matchId !== matchId) return null;
+  if (payload.channel !== channel) return null;
+  if (payload.resourceId !== resourceId) return null;
   if (typeof payload.exp !== "number" || Date.now() > payload.exp) return null;
   return payload;
 }
 
-// matchId -> Set<WebSocket>
+// roomKey ("channel:resourceId") -> Set<WebSocket>
 const rooms = new Map();
 
-function roomFor(matchId) {
-  let room = rooms.get(matchId);
+function roomKeyFor(channel, resourceId) {
+  return `${channel}:${resourceId}`;
+}
+
+function roomFor(roomKey) {
+  let room = rooms.get(roomKey);
   if (!room) {
     room = new Set();
-    rooms.set(matchId, room);
+    rooms.set(roomKey, room);
   }
   return room;
 }
 
-function broadcast(matchId, message) {
-  const room = rooms.get(matchId);
+function broadcast(roomKey, message) {
+  const room = rooms.get(roomKey);
   if (!room || room.size === 0) return;
   const data = JSON.stringify(message);
   for (const socket of room) {
@@ -75,9 +86,9 @@ function broadcast(matchId, message) {
   }
 }
 
-function broadcastPresence(matchId) {
-  const room = rooms.get(matchId);
-  broadcast(matchId, { type: "presence", viewers: room ? room.size : 0 });
+function broadcastPresence(roomKey) {
+  const room = rooms.get(roomKey);
+  broadcast(roomKey, { type: "presence", viewers: room ? room.size : 0 });
 }
 
 const server = createServer((req, res) => {
@@ -100,9 +111,11 @@ const server = createServer((req, res) => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { matchId, event } = JSON.parse(body);
-        if (typeof matchId !== "string" || !event) throw new Error("invalid payload");
-        broadcast(matchId, event);
+        const { channel, resourceId, event } = JSON.parse(body);
+        if (typeof channel !== "string" || typeof resourceId !== "string" || !event) {
+          throw new Error("invalid payload");
+        }
+        broadcast(roomKeyFor(channel, resourceId), event);
         res.writeHead(204).end();
       } catch {
         res.writeHead(400).end();
@@ -123,9 +136,10 @@ server.on("upgrade", (req, socket, head) => {
     return;
   }
 
-  const matchId = url.searchParams.get("matchId");
+  const channel = url.searchParams.get("channel");
+  const resourceId = url.searchParams.get("resourceId");
   const token = url.searchParams.get("token");
-  const payload = matchId ? verifyJoinToken(token, matchId) : null;
+  const payload = channel && resourceId ? verifyJoinToken(token, channel, resourceId) : null;
 
   if (!payload) {
     socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -133,22 +147,24 @@ server.on("upgrade", (req, socket, head) => {
     return;
   }
 
+  const roomKey = roomKeyFor(channel, resourceId);
+
   wss.handleUpgrade(req, socket, head, (ws) => {
-    ws.matchId = matchId;
+    ws.roomKey = roomKey;
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
     });
 
-    const room = roomFor(matchId);
+    const room = roomFor(roomKey);
     room.add(ws);
     ws.send(JSON.stringify({ type: "presence", viewers: room.size }));
-    broadcastPresence(matchId);
+    broadcastPresence(roomKey);
 
     ws.on("close", () => {
       room.delete(ws);
-      if (room.size === 0) rooms.delete(matchId);
-      broadcastPresence(matchId);
+      if (room.size === 0) rooms.delete(roomKey);
+      broadcastPresence(roomKey);
     });
 
     ws.on("error", () => ws.terminate());

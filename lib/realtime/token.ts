@@ -4,9 +4,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * Short-lived join tokens for the realtime relay (realtime/server.js). The
  * relay has no database access and makes no authorization decisions itself
  * -- it just verifies a token signed here with REALTIME_SHARED_SECRET before
- * letting a socket join a match's room. Keep this HMAC scheme in sync with
+ * letting a socket join a channel's room. Keep this HMAC scheme in sync with
  * verifyJoinToken() in realtime/server.js.
  */
+
+export type RelayChannel = "match" | "user" | "queue";
 
 const JOIN_TOKEN_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours -- long enough to cover a match
 
@@ -20,8 +22,8 @@ function base64Url(input: Buffer): string {
   return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function mintJoinToken(matchId: string, userId: string): string {
-  const payload = { matchId, userId, exp: Date.now() + JOIN_TOKEN_TTL_MS };
+export function mintJoinToken(channel: RelayChannel, resourceId: string, userId: string): string {
+  const payload = { channel, resourceId, userId, exp: Date.now() + JOIN_TOKEN_TTL_MS };
   const payloadPart = base64Url(Buffer.from(JSON.stringify(payload), "utf8"));
   const signature = createHmac("sha256", secret()).update(payloadPart).digest();
   return `${payloadPart}.${base64Url(signature)}`;
@@ -29,7 +31,8 @@ export function mintJoinToken(matchId: string, userId: string): string {
 
 export function verifyJoinToken(
   token: string,
-  matchId: string
+  channel: RelayChannel,
+  resourceId: string
 ): { userId: string } | null {
   const [payloadPart, signaturePart] = token.split(".");
   if (!payloadPart || !signaturePart) return null;
@@ -45,14 +48,15 @@ export function verifyJoinToken(
     return null;
   }
 
-  let payload: { matchId?: string; userId?: string; exp?: number };
+  let payload: { channel?: string; resourceId?: string; userId?: string; exp?: number };
   try {
     payload = JSON.parse(Buffer.from(payloadPart, "base64").toString("utf8"));
   } catch {
     return null;
   }
 
-  if (payload.matchId !== matchId) return null;
+  if (payload.channel !== channel) return null;
+  if (payload.resourceId !== resourceId) return null;
   if (typeof payload.exp !== "number" || Date.now() > payload.exp) return null;
   if (typeof payload.userId !== "string") return null;
 

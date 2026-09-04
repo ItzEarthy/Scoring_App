@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import {
   leaveQueueAction,
   type QueueActionState,
 } from "@/lib/matchmaking/queue-actions";
+import { useQueueSocket } from "./use-queue-socket";
 
 const initialState: QueueActionState = { status: "idle" };
 
@@ -48,25 +49,23 @@ export function QueuePanel({
   userId,
   waiting,
   myMatchId,
+  joinToken,
 }: {
   organizationId: string;
   sport: { id: string; name: string };
   userId: string;
   waiting: WaitingPlayer[];
   myMatchId: string | null;
+  joinToken: string;
 }) {
   const router = useRouter();
   const [state, formAction] = useActionState(joinQueueAction, initialState);
   const isQueued = waiting.some((p) => p.userId === userId);
 
-  // Live-updating queue: the app has no realtime/websocket layer, so we
-  // re-fetch the server component on an interval to reflect other players
-  // joining/leaving and matches forming.
-  const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
-  useEffect(() => {
-    intervalRef.current = setInterval(() => router.refresh(), 4000);
-    return () => clearInterval(intervalRef.current);
-  }, [router]);
+  // Live-updating queue: refresh the server-rendered list whenever the
+  // realtime relay tells us someone joined/left or a match formed for this
+  // org+sport, instead of polling on a timer.
+  useQueueSocket(organizationId, sport.id, joinToken, () => router.refresh());
 
   return (
     <Card>

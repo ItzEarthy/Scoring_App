@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { QueueStatus, MatchStatus, CourtStatus } from "@/app/generated/prisma/enums";
+import { QueueStatus, MatchStatus, CourtStatus, NotificationType } from "@/app/generated/prisma/enums";
 import { getRatingEngine } from "@/lib/matchmaking/rating-engines";
 import { pickAvailableCourt } from "@/lib/matchmaking/assign-court";
+import { notifyUsers } from "@/lib/notifications/notify";
+import { publishQueueEvent } from "@/lib/realtime/publish";
 
 type PlatformConfig = {
   skill_gap_threshold?: number | null;
@@ -61,7 +63,7 @@ export async function formMatchesFromQueue(organizationId: string, sportId: stri
   const [sport, organization] = await Promise.all([
     prisma.sport.findUniqueOrThrow({
       where: { id: sportId },
-      select: { ratingAlgorithm: true, minTeamSize: true, maxTeamSize: true },
+      select: { name: true, ratingAlgorithm: true, minTeamSize: true, maxTeamSize: true },
     }),
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
@@ -110,15 +112,34 @@ export async function formMatchesFromQueue(organizationId: string, sportId: stri
     .sort((a, b) => b.conservative - a.conservative);
 
   if (teamSize === 1) {
-    await formSinglesMatches(organizationId, sportId, ranked, skillGapThreshold, delayMs);
+    await formSinglesMatches(organizationId, sportId, sport.name, ranked, skillGapThreshold, delayMs);
   } else {
-    await formTeamMatches(organizationId, sportId, ranked, teamSize, skillGapThreshold, delayMs);
+    await formTeamMatches(
+      organizationId,
+      sportId,
+      sport.name,
+      ranked,
+      teamSize,
+      skillGapThreshold,
+      delayMs
+    );
   }
+}
+
+async function notifyMatchStarted(organizationId: string, sportName: string, matchId: string, userIds: string[]) {
+  await notifyUsers(userIds, {
+    type: NotificationType.MATCH_STARTED,
+    title: "Match found",
+    body: `Your ${sportName} match is ready.`,
+    organizationId,
+    matchId,
+  });
 }
 
 async function formSinglesMatches(
   organizationId: string,
   sportId: string,
+  sportName: string,
   ranked: RankedEntry[],
   skillGapThreshold: number | null,
   delayMs: number
@@ -144,6 +165,8 @@ async function formSinglesMatches(
     }
   }
   if (pairs.length === 0) return;
+
+  const formed: { matchId: string; userIds: string[] }[] = [];
 
   await prisma.$transaction(async (tx) => {
     const claimedCourtIds: string[] = [];
@@ -173,8 +196,15 @@ async function formSinglesMatches(
         where: { id: { in: [a.entryId, b.entryId] } },
         data: { status: QueueStatus.MATCHED, matchId: match.id },
       });
+
+      formed.push({ matchId: match.id, userIds: [a.userId, b.userId] });
     }
   });
+
+  await publishQueueEvent(organizationId, sportId, { type: "queue_changed" });
+  await Promise.all(
+    formed.map(({ matchId, userIds }) => notifyMatchStarted(organizationId, sportName, matchId, userIds))
+  );
 }
 
 /**
@@ -187,6 +217,7 @@ async function formSinglesMatches(
 async function formTeamMatches(
   organizationId: string,
   sportId: string,
+  sportName: string,
   ranked: RankedEntry[],
   teamSize: number,
   skillGapThreshold: number | null,
@@ -216,6 +247,8 @@ async function formTeamMatches(
     groups.push(idxs.map((idx) => ranked[idx]));
   }
   if (groups.length === 0) return;
+
+  const formed: { matchId: string; userIds: string[] }[] = [];
 
   await prisma.$transaction(async (tx) => {
     const claimedCourtIds: string[] = [];
@@ -257,8 +290,15 @@ async function formTeamMatches(
         where: { id: { in: group.map((p) => p.entryId) } },
         data: { status: QueueStatus.MATCHED, matchId: match.id },
       });
+
+      formed.push({ matchId: match.id, userIds: group.map((p) => p.userId) });
     }
   });
+
+  await publishQueueEvent(organizationId, sportId, { type: "queue_changed" });
+  await Promise.all(
+    formed.map(({ matchId, userIds }) => notifyMatchStarted(organizationId, sportName, matchId, userIds))
+  );
 }
 
 /**

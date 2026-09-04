@@ -174,7 +174,7 @@ export default async function MatchPage({
       ) : (
         <LiveScoreboard
           matchId={match.id}
-          joinToken={mintJoinToken(match.id, userId)}
+          joinToken={mintJoinToken("match", match.id, userId)}
           currentUserId={userId}
           teams={teams.map((t) => ({
             teamIdentifier: t.teamIdentifier,

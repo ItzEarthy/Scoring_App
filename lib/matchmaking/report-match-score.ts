@@ -5,7 +5,8 @@ import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submitMatchScore } from "@/lib/matchmaking/submit-match-score";
 import { getScoreConfig, parseScoreFormData, validateAndDeriveScore } from "@/lib/matchmaking/scoring";
-import { MatchStatus, Role } from "@/app/generated/prisma/enums";
+import { MatchStatus, Role, NotificationType } from "@/app/generated/prisma/enums";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 export type ReportMatchScoreState = {
   status: "idle" | "success" | "error";
@@ -156,6 +157,21 @@ export async function reportMatchScoreAction(
     });
 
     revalidatePath(`/matches/${matchId}`);
+
+    const reporter = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const otherParticipantIds = match.participants
+      .filter((p) => p.userId !== userId)
+      .map((p) => p.userId);
+    if (otherParticipantIds.length > 0) {
+      await notifyUsers(otherParticipantIds, {
+        type: NotificationType.SCORE_NEEDS_CONFIRMATION,
+        title: "Score needs confirming",
+        body: `${reporter?.name ?? "A participant"} reported a result for your ${match.sport.name} match -- confirm or dispute it.`,
+        organizationId: orgId,
+        matchId,
+      });
+    }
+
     return {
       status: "success",
       message: "Score reported. Waiting for another participant to confirm the result.",

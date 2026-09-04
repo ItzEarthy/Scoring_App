@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, getVerifiedSiteAdminUserId } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { mintJoinToken } from "@/lib/realtime/token";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,6 +17,7 @@ import {
 import { Trophy, LayoutDashboard, Users, ShieldCheck } from "lucide-react";
 import { SignOutMenuItem } from "./sign-out-item";
 import { MobileTabBar } from "./mobile-tab-bar";
+import { NotificationBell } from "./notification-bell";
 
 export default async function PlayerLayout({
   children,
@@ -23,12 +26,17 @@ export default async function PlayerLayout({
 }) {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect("/login");
   }
 
   const user = session.user;
+  const userId = session.user.id;
   const siteAdminUserId = await getVerifiedSiteAdminUserId();
+  const notificationJoinToken = mintJoinToken("user", userId, userId);
+  const initialUnreadCount = await prisma.notification.count({
+    where: { userId, readAt: null },
+  });
   const initials = (user.name ?? user.email ?? "?")
     .trim()
     .split(" ")
@@ -79,45 +87,53 @@ export default async function PlayerLayout({
             )}
           </nav>
 
-          {/* Account menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  className="relative h-9 w-9 rounded-full p-0 hover:bg-brand-base/10"
-                />
-              }
-            >
-              <Avatar className="h-9 w-9 ring-2 ring-brand-secondary">
-                <AvatarImage src={user.image ?? undefined} alt={user.name ?? "User"} />
-                <AvatarFallback className="bg-brand-secondary text-brand-primary-dark">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="flex flex-col">
-                  <span className="font-medium">{user.name ?? "Player"}</span>
-                  <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
-                </DropdownMenuLabel>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href="/orgs" />}>
-                <Users className="mr-2 h-4 w-4" />
-                My Organizations
-              </DropdownMenuItem>
-              {siteAdminUserId && (
-                <DropdownMenuItem render={<Link href="/admin" />}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  Site Admin
+          <div className="flex items-center gap-1">
+            <NotificationBell
+              userId={userId}
+              joinToken={notificationJoinToken}
+              initialUnreadCount={initialUnreadCount}
+            />
+
+            {/* Account menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="relative h-9 w-9 rounded-full p-0 hover:bg-brand-base/10"
+                  />
+                }
+              >
+                <Avatar className="h-9 w-9 ring-2 ring-brand-secondary">
+                  <AvatarImage src={user.image ?? undefined} alt={user.name ?? "User"} />
+                  <AvatarFallback className="bg-brand-secondary text-brand-primary-dark">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex flex-col">
+                    <span className="font-medium">{user.name ?? "Player"}</span>
+                    <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/orgs" />}>
+                  <Users className="mr-2 h-4 w-4" />
+                  My Organizations
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <SignOutMenuItem />
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {siteAdminUserId && (
+                  <DropdownMenuItem render={<Link href="/admin" />}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    Site Admin
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <SignOutMenuItem />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="stripe-bar h-1.5 w-full" />
       </header>

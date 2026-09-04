@@ -6,7 +6,7 @@ import { QueueStatus } from "@/app/generated/prisma/enums";
 import { QueuePanel } from "./queue-panel";
 import { Swords } from "lucide-react";
 import { expireStaleQueueEntries } from "@/lib/matchmaking/expire-stale-queue-entries";
-import { formMatchesFromQueue } from "@/lib/matchmaking/form-matches";
+import { mintJoinToken } from "@/lib/realtime/token";
 
 export default async function QueuePage({
   params,
@@ -40,11 +40,6 @@ export default async function QueuePage({
     orderBy: { name: "asc" },
   });
 
-  // Lazily re-run matchmaking on every load (the queue page polls itself),
-  // so groups that were held back by the matchmaking delay lock in once
-  // enough time has passed, even without a fresh join to trigger it.
-  await Promise.all(sports.map((sport) => formMatchesFromQueue(orgId, sport.id)));
-
   const waitingEntries = await prisma.queueEntry.findMany({
     where: { organizationId: orgId, status: QueueStatus.WAITING },
     orderBy: { joinedAt: "asc" },
@@ -64,6 +59,7 @@ export default async function QueuePage({
       myRecentMatched?.sportId === sport.id && myRecentMatched.matchId
         ? myRecentMatched.matchId
         : null,
+    joinToken: mintJoinToken("queue", `${orgId}:${sport.id}`, userId),
   }));
 
   return (
@@ -87,7 +83,7 @@ export default async function QueuePage({
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {bySport.map(({ sport, waiting, myMatch }) => (
+        {bySport.map(({ sport, waiting, myMatch, joinToken }) => (
           <QueuePanel
             key={sport.id}
             organizationId={organization.id}
@@ -101,6 +97,7 @@ export default async function QueuePage({
               joinedAt: e.joinedAt.toISOString(),
             }))}
             myMatchId={myMatch}
+            joinToken={joinToken}
           />
         ))}
       </div>

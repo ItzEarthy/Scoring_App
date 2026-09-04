@@ -42,7 +42,7 @@ export async function registerUser(formData: FormData) {
     await signIn("credentials", {
       email: normalizedEmail,
       password,
-      redirectTo: "/orgs",
+      redirectTo: "/onboarding",
     });
   } catch (error) {
     if (error instanceof AuthError) {

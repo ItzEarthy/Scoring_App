@@ -5,7 +5,8 @@ import { getVerifiedUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submitMatchScore } from "@/lib/matchmaking/submit-match-score";
 import { validateAndDeriveScore } from "@/lib/matchmaking/scoring";
-import { MatchStatus, CourtStatus, Role } from "@/app/generated/prisma/enums";
+import { MatchStatus, CourtStatus, Role, NotificationType } from "@/app/generated/prisma/enums";
+import { notifyUsers } from "@/lib/notifications/notify";
 
 export type ResolveDisputeState = {
   status: "idle" | "success" | "error";
@@ -59,7 +60,7 @@ export async function forceMatchWinnerAction(
       organizationId: true,
       status: true,
       sport: { select: { name: true, defaultRules: true } },
-      participants: { select: { teamIdentifier: true, score: true } },
+      participants: { select: { userId: true, teamIdentifier: true, score: true } },
     },
   });
   if (!match || match.organizationId !== orgId) {
@@ -96,6 +97,19 @@ export async function forceMatchWinnerAction(
   revalidatePath(`/orgs/${orgId}/settings`);
   revalidatePath("/dashboard");
 
+  if (result.success) {
+    await notifyUsers(
+      match.participants.map((p) => p.userId),
+      {
+        type: NotificationType.DISPUTE_RESOLVED,
+        title: "Dispute resolved",
+        body: `An admin resolved your disputed ${match.sport.name} match.`,
+        organizationId: orgId,
+        matchId,
+      }
+    );
+  }
+
   return result.success
     ? { status: "success", message: "Dispute resolved -- ratings updated." }
     : { status: "error", message: result.error };
@@ -131,7 +145,13 @@ export async function voidMatchAction(
 
   const match = await prisma.match.findUnique({
     where: { id: matchId },
-    select: { organizationId: true, status: true, courtId: true },
+    select: {
+      organizationId: true,
+      status: true,
+      courtId: true,
+      sport: { select: { name: true } },
+      participants: { select: { userId: true } },
+    },
   });
   if (!match || match.organizationId !== orgId) {
     return { status: "error", message: "Match not found." };
@@ -156,6 +176,17 @@ export async function voidMatchAction(
   revalidatePath(`/matches/${matchId}`);
   revalidatePath(`/orgs/${orgId}/settings`);
   revalidatePath("/dashboard");
+
+  await notifyUsers(
+    match.participants.map((p) => p.userId),
+    {
+      type: NotificationType.DISPUTE_RESOLVED,
+      title: "Dispute resolved",
+      body: `An admin voided your disputed ${match.sport.name} match -- no ratings were affected.`,
+      organizationId: orgId,
+      matchId,
+    }
+  );
 
   return { status: "success", message: "Match voided. No ratings were affected." };
 }

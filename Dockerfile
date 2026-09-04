@@ -27,6 +27,11 @@ ENV DATABASE_URL=${DATABASE_URL}
 # here rather than read at container start.
 ARG NEXT_PUBLIC_WS_URL="ws://localhost:3001"
 ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
+# Same reasoning: the web push subscribe flow needs the VAPID public key in
+# the browser bundle. The matching private key is a runtime-only secret (see
+# the `app` service's environment in docker-compose.yml), never a build arg.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
