@@ -30,6 +30,7 @@ export function MatchmakingSettingsForm({
   autoApproveHours,
   skillGapThreshold,
   queueTimeoutMinutes,
+  matchmakingDelaySeconds,
 }: {
   organizationId: string;
   matchMode: string;
@@ -37,6 +38,7 @@ export function MatchmakingSettingsForm({
   autoApproveHours: number;
   skillGapThreshold: number | null;
   queueTimeoutMinutes: number | null;
+  matchmakingDelaySeconds: number | null;
 }) {
   const [state, formAction] = useActionState(updateOrgSettingsAction, initialState);
 
@@ -140,6 +142,25 @@ export function MatchmakingSettingsForm({
           />
           <p className="text-xs text-muted-foreground">
             Removes a player from the queue after this long without a match. Leave blank to never expire.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="matchmaking_delay_seconds" className="text-sm font-medium text-foreground">
+            Matchmaking delay (seconds)
+          </label>
+          <Input
+            id="matchmaking_delay_seconds"
+            name="matchmaking_delay_seconds"
+            type="number"
+            min={0}
+            placeholder="20 (default)"
+            defaultValue={matchmakingDelaySeconds ?? ""}
+          />
+          <p className="text-xs text-muted-foreground">
+            How long a viable group waits before a match locks in, like a game&apos;s matchmaking
+            lobby -- gives late arrivals a chance to improve the pairing instead of starting the
+            instant enough players are queued. Set to 0 for instant matching.
           </p>
         </div>
       </div>

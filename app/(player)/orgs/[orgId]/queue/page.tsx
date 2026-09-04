@@ -6,6 +6,7 @@ import { QueueStatus } from "@/app/generated/prisma/enums";
 import { QueuePanel } from "./queue-panel";
 import { Swords } from "lucide-react";
 import { expireStaleQueueEntries } from "@/lib/matchmaking/expire-stale-queue-entries";
+import { formMatchesFromQueue } from "@/lib/matchmaking/form-matches";
 
 export default async function QueuePage({
   params,
@@ -38,6 +39,11 @@ export default async function QueuePage({
     where: { isActive: true, organizationSports: { some: { organizationId: orgId } } },
     orderBy: { name: "asc" },
   });
+
+  // Lazily re-run matchmaking on every load (the queue page polls itself),
+  // so groups that were held back by the matchmaking delay lock in once
+  // enough time has passed, even without a fresh join to trigger it.
+  await Promise.all(sports.map((sport) => formMatchesFromQueue(orgId, sport.id)));
 
   const waitingEntries = await prisma.queueEntry.findMany({
     where: { organizationId: orgId, status: QueueStatus.WAITING },
@@ -74,8 +80,9 @@ export default async function QueuePage({
           Matchmaking Queue
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Join the queue for a sport and you&apos;ll be matched automatically once another
-          player is waiting.
+          Join the queue for a sport and you&apos;ll be matched automatically once enough players
+          are waiting. Matchmaking holds briefly before locking in a match, so late arrivals can
+          still improve the pairing.
         </p>
       </div>
 

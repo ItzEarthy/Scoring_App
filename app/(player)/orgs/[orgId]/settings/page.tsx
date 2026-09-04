@@ -19,6 +19,7 @@ type PlatformConfig = {
   auto_approve_hours?: number;
   skill_gap_threshold?: number | null;
   queue_timeout_minutes?: number | null;
+  matchmaking_delay_seconds?: number | null;
 };
 
 export default async function OrgSettingsPage({
@@ -182,6 +183,7 @@ export default async function OrgSettingsPage({
               autoApproveHours={config.auto_approve_hours ?? 24}
               skillGapThreshold={config.skill_gap_threshold ?? null}
               queueTimeoutMinutes={config.queue_timeout_minutes ?? null}
+              matchmakingDelaySeconds={config.matchmaking_delay_seconds ?? null}
             />
           </CardContent>
         </Card>

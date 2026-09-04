@@ -21,6 +21,16 @@ function parseOptionalNonNegativeNumber(raw: FormDataEntryValue | null): number 
   return value === 0 ? null : value;
 }
 
+// Empty input means "use the default delay" (null); unlike the other optional
+// numbers, 0 is a meaningful, distinct value here (instant matchmaking, no
+// lobby wait) rather than being folded into "disabled".
+function parseOptionalDelaySeconds(raw: FormDataEntryValue | null): number | null | "invalid" {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return "invalid";
+  return value;
+}
+
 export async function updateOrgSettingsAction(
   _prevState: UpdateOrgSettingsState,
   formData: FormData
@@ -49,6 +59,7 @@ export async function updateOrgSettingsAction(
   const autoApproveHoursRaw = formData.get("auto_approve_hours");
   const skillGapThresholdRaw = formData.get("skill_gap_threshold");
   const queueTimeoutMinutesRaw = formData.get("queue_timeout_minutes");
+  const matchmakingDelaySecondsRaw = formData.get("matchmaking_delay_seconds");
 
   if (typeof matchMode !== "string" || !MATCH_MODES.has(matchMode)) {
     return { status: "error", message: "Invalid match mode." };
@@ -70,6 +81,10 @@ export async function updateOrgSettingsAction(
   if (queueTimeoutMinutes === "invalid") {
     return { status: "error", message: "Queue timeout must be a positive number of minutes." };
   }
+  const matchmakingDelaySeconds = parseOptionalDelaySeconds(matchmakingDelaySecondsRaw);
+  if (matchmakingDelaySeconds === "invalid") {
+    return { status: "error", message: "Matchmaking delay must be a non-negative number of seconds." };
+  }
 
   await prisma.organization.update({
     where: { id: organizationId },
@@ -80,6 +95,7 @@ export async function updateOrgSettingsAction(
         auto_approve_hours: autoApproveHours,
         skill_gap_threshold: skillGapThreshold,
         queue_timeout_minutes: queueTimeoutMinutes,
+        matchmaking_delay_seconds: matchmakingDelaySeconds,
       },
     },
   });
