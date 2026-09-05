@@ -74,6 +74,7 @@ export default async function MatchPage({
         name: p.user.name ?? p.user.email,
         avatarBase64: p.user.avatarBase64,
         score: p.score,
+        setScores: p.setScores,
         outcome: p.outcome,
       })),
   }));
@@ -167,8 +168,19 @@ export default async function MatchPage({
                         {player.outcome}
                       </Badge>
                     )}
-                    {player.score !== null && (
-                      <span className="scoreboard text-xl text-brand-primary">{player.score}</span>
+                    {scoreConfig.shape === "sets" && player.setScores.length > 0 ? (
+                      <div className="flex flex-col items-end">
+                        <span className="scoreboard text-xl text-brand-primary">
+                          {player.setScores.join(" · ")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {player.score} set{player.score === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    ) : (
+                      player.score !== null && (
+                        <span className="scoreboard text-xl text-brand-primary">{player.score}</span>
+                      )
                     )}
                   </div>
                 ))}
@@ -177,8 +189,37 @@ export default async function MatchPage({
           ))}
         </div>
       ) : (
-        <LiveScoreboard
-          matchId={match.id}
+        <>
+          {scoreConfig.shape === "sets" &&
+            match.status === MatchStatus.PENDING_CONFIRMATION &&
+            teams.some((t) => t.players.some((p) => p.setScores.length > 0)) && (
+              <Card className="bg-brand-surface">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Reported Score</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {teams.map((team) => (
+                    <div key={team.teamIdentifier} className="flex flex-col gap-2">
+                      <span className="text-xs font-semibold uppercase text-muted-foreground">
+                        {team.label}
+                      </span>
+                      {team.players.map((player) => (
+                        <div key={player.participantId} className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-medium text-foreground">{player.name}</span>
+                          <span className="scoreboard text-lg text-brand-primary">
+                            {player.setScores.length > 0
+                              ? player.setScores.join(" · ")
+                              : player.score ?? "-"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          <LiveScoreboard
+            matchId={match.id}
           joinToken={mintJoinToken("match", match.id, userId)}
           currentUserId={userId}
           teams={teams.map((t) => ({
@@ -196,6 +237,7 @@ export default async function MatchPage({
           )}
           canControl={canReportScore}
         />
+        </>
       )}
 
       <Separator />

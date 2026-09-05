@@ -20,6 +20,8 @@ export function validateSets(
 
   let aSets = 0;
   let bSets = 0;
+  const aPoints: number[] = [];
+  const bPoints: number[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -58,6 +60,8 @@ export function validateSets(
 
     if (winner === "a") aSets++;
     else bSets++;
+    aPoints.push(a);
+    bPoints.push(b);
   }
 
   if (aSets !== rules.setsToWin && bSets !== rules.setsToWin) {
@@ -68,5 +72,11 @@ export function validateSets(
   }
 
   const winnerTeamId = aSets === rules.setsToWin ? aId : bId;
-  return { valid: true, draw: false, winnerTeamId, teamScores: { [aId]: aSets, [bId]: bSets } };
+  return {
+    valid: true,
+    draw: false,
+    winnerTeamId,
+    teamScores: { [aId]: aSets, [bId]: bSets },
+    setScores: { [aId]: aPoints, [bId]: bPoints },
+  };
 }

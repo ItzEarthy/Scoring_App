@@ -271,6 +271,7 @@ model MatchParticipant {
   userId         String        @map("user_id")
   teamIdentifier String        @map("team_identifier")
   score          Int?
+  setScores      Int[]         @default([]) @map("set_scores")
   outcome        MatchOutcome?
 
   // Ledger fields: historical snapshot of rating state around this match

@@ -101,7 +101,10 @@ export async function reportMatchScoreAction(
     match.participants.map((p) =>
       prisma.matchParticipant.update({
         where: { id: p.id },
-        data: { score: result.teamScores[p.teamIdentifier] ?? null },
+        data: {
+          score: result.teamScores[p.teamIdentifier] ?? null,
+          setScores: result.setScores?.[p.teamIdentifier] ?? [],
+        },
       })
     )
   );

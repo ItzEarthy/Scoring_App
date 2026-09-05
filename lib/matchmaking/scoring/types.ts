@@ -27,6 +27,12 @@ export type SportRuleConfig =
   | { shape: "sets"; rules: SetsRules };
 
 export type ScoreResult =
-  | { valid: true; draw: true; teamScores: Record<string, number> }
-  | { valid: true; draw: false; winnerTeamId: string; teamScores: Record<string, number> }
+  | { valid: true; draw: true; teamScores: Record<string, number>; setScores?: Record<string, number[]> }
+  | {
+      valid: true;
+      draw: false;
+      winnerTeamId: string;
+      teamScores: Record<string, number>;
+      setScores?: Record<string, number[]>;
+    }
   | { valid: false; error: string };
