@@ -96,12 +96,15 @@ export function QueuePanel({
                   <AvatarImage src={player.avatarBase64 ?? undefined} alt={player.name} />
                   <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span className="flex-1 text-sm font-medium text-foreground">
+                <Link
+                  href={`/players/${player.userId}`}
+                  className="flex-1 text-sm font-medium text-foreground hover:text-brand-primary hover:underline"
+                >
                   {player.name}
                   {player.userId === userId && (
                     <span className="ml-1.5 text-xs font-normal text-brand-primary">(you)</span>
                   )}
-                </span>
+                </Link>
                 <span className="text-xs text-muted-foreground">waiting {timeAgo(player.joinedAt)}</span>
               </div>
             ))}

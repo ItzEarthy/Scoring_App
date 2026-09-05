@@ -184,7 +184,9 @@ export default async function OrgPage({
                         <TableRow key={r.id}>
                           <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                           <TableCell className="font-medium text-foreground">
-                            {r.user.name ?? r.user.email}
+                            <Link href={`/players/${r.user.id}`} className="hover:text-brand-primary hover:underline">
+                              {r.user.name ?? r.user.email}
+                            </Link>
                           </TableCell>
                           <TableCell className="scoreboard text-right text-lg text-brand-primary">
                             {conservativeRating(

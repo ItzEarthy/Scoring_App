@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trophy, LayoutDashboard, Users, ShieldCheck } from "lucide-react";
+import { Trophy, LayoutDashboard, Users, ShieldCheck, UserCircle, Settings } from "lucide-react";
 import { SignOutMenuItem } from "./sign-out-item";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { NotificationBell } from "./notification-bell";
@@ -32,6 +32,16 @@ export default async function PlayerLayout({
 
   const user = session.user;
   const userId = session.user.id;
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatarBase64: true, onboardingCompletedAt: true },
+  });
+
+  if (dbUser && !dbUser.onboardingCompletedAt) {
+    redirect("/onboarding");
+  }
+
   const siteAdminUserId = await getVerifiedSiteAdminUserId();
   const notificationJoinToken = mintJoinToken("user", userId, userId);
   const initialUnreadCount = await prisma.notification.count({
@@ -105,7 +115,7 @@ export default async function PlayerLayout({
                 }
               >
                 <Avatar className="h-9 w-9 ring-2 ring-brand-secondary">
-                  <AvatarImage src={user.image ?? undefined} alt={user.name ?? "User"} />
+                  <AvatarImage src={dbUser?.avatarBase64 ?? undefined} alt={user.name ?? "User"} />
                   <AvatarFallback className="bg-brand-secondary text-brand-primary-dark">
                     {initials}
                   </AvatarFallback>
@@ -119,6 +129,14 @@ export default async function PlayerLayout({
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href={`/players/${userId}`} />}>
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  My Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href="/settings" />}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Account Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/orgs" />}>
                   <Users className="mr-2 h-4 w-4" />
                   My Organizations

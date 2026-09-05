@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { publishUserEvent } from "@/lib/realtime/publish";
 import { sendPushNotification } from "@/lib/notifications/push";
-import { resolveNotificationPreferences } from "@/lib/account/notification-preferences";
+import { resolveNotificationPreferences } from "@/lib/account/notification-preferences-shared";
 import type { NotificationType } from "@/app/generated/prisma/enums";
 
 export type NotifyPayload = {

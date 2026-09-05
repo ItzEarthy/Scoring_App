@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
@@ -52,11 +53,13 @@ export function MembersList({
               key={m.id}
               className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
             >
-              <Avatar size="sm">
-                <AvatarImage src={m.user.avatarBase64 ?? undefined} alt={m.user.name ?? m.user.email} />
-                <AvatarFallback>{(m.user.name ?? m.user.email).slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="flex-1 font-medium text-foreground">{m.user.name ?? m.user.email}</span>
+              <Link href={`/players/${m.userId}`} className="flex flex-1 items-center gap-3 hover:text-brand-primary">
+                <Avatar size="sm">
+                  <AvatarImage src={m.user.avatarBase64 ?? undefined} alt={m.user.name ?? m.user.email} />
+                  <AvatarFallback>{(m.user.name ?? m.user.email).slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-foreground hover:underline">{m.user.name ?? m.user.email}</span>
+              </Link>
               {isAdmin && m.role !== Role.OWNER && m.userId !== currentUserId ? (
                 <MemberRowControls
                   organizationId={organizationId}

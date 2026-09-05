@@ -148,7 +148,12 @@ export default async function MatchPage({
                         {player.name.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="flex-1 font-medium text-foreground">{player.name}</span>
+                    <Link
+                      href={`/players/${player.userId}`}
+                      className="flex-1 font-medium text-foreground hover:text-brand-primary hover:underline"
+                    >
+                      {player.name}
+                    </Link>
                     {player.outcome && (
                       <Badge
                         className={
