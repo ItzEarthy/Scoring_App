@@ -49,6 +49,7 @@ export default async function MatchPage({
       court: { select: { name: true } },
       organization: { select: { id: true, name: true, platformConfig: true } },
       participants: {
+        orderBy: [{ teamIdentifier: "asc" }, { id: "asc" }],
         include: {
           user: { select: { id: true, name: true, email: true, avatarBase64: true } },
         },
